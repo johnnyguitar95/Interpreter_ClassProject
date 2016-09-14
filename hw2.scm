@@ -47,3 +47,11 @@
   )
 )
 
+(define symbol-count
+  (lambda (lst)
+    (cdr lst)))
+
+(define path
+  (lambda (n t)
+    ((null? t) #f)
+  ))
