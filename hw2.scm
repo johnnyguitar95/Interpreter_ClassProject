@@ -17,7 +17,7 @@
   (lambda (env search-var)
     (if (environment? env)
         (cases environment env
-          (empty-env () 'error-empty-environment)
+          (empty-env () (report-no-binding-found search-var))
           (extend-env (var val env)
                       (if (eq? var search-var)
                           val
@@ -25,7 +25,7 @@
                       )
           )
         )
-        'error-not-environment
+        (report-invalid-env env)
     )
   )
 )
@@ -42,10 +42,18 @@
                       )
           )
         )
-        'error-env-not-environment
+        (report-invalid-env env)
     )
   )
 )
+
+(define report-no-binding-found
+  (lambda (search-var)
+    (eopl:error 'apply-env "No binding for ~s" search-var)))
+
+(define report-invalid-env
+  (lambda (env)
+    (eopl:error 'apply-env "Bad environment: ~s" env)))
 
 (define symbol-count
   (lambda (lst)
@@ -55,3 +63,5 @@
   (lambda (n t)
     ((null? t) #f)
   ))
+
+(provide environment empty-env extend-env apply-env has-binding? symbol-count path)
