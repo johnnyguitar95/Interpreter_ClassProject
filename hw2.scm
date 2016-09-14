@@ -1,4 +1,7 @@
 #lang eopl
+
+;John Halloran and Jakob Horner
+
 (define-datatype environment environment?
   (empty-env)
   (extend-env
