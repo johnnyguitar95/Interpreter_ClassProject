@@ -1,12 +1,14 @@
 #lang eopl
 
+(require "Tree.scm")
+
 ;John Halloran and Jakob Horner
 
 (define-datatype environment environment?
   (empty-env)
   (extend-env
-   (var (not null?))
-   (val (not null?))
+   (var (lambda (value) #t))
+   (val (lambda (value) #t))
    (env environment?)
   )
 )
@@ -24,6 +26,23 @@
           )
         )
         'error-not-environment
+    )
+  )
+)
+
+(define has-binding?
+  (lambda (env s)
+    (if (environment? env)
+        (cases environment env
+          (empty-env () #f)
+          (extend-env (var val env)
+                      (if (eq? var s)
+                          #t
+                          (has-binding? env s)
+                      )
+          )
+        )
+        'error-env-not-environment
     )
   )
 )
