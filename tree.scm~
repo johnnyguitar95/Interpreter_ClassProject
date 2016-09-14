@@ -6,9 +6,9 @@
 	(lambda (datum left right)
 		(if (and (number? datum)
 			 (tree? left)
-			 (tree? right))
+			 (tree? right)
 		    (list TREE datum left right)
-		    'error)))
+		    'error))))
 
 (define tree-make-null
 	(lambda () (list TREE)))
