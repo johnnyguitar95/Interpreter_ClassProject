@@ -65,13 +65,16 @@
   (lambda (lst)
     (if (null? lst)
         (empty-env)
-        ((has-binding? (list-to-env (cdr lst)) (car lst))
+        (if (has-binding? (list-to-env (cdr lst)) (car lst))
                       (extend-env (car lst) (+ (apply-env (list-to-env (cdr lst)) (car lst)) 1) (list-to-env (cdr lst)))
                       (extend-env (car lst) 1 (list-to-env (cdr lst)))
         )
     )
   )
 )
+
+
+
 (define build-list
   (lambda (lst)
     '()
