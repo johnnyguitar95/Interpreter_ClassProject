@@ -59,7 +59,7 @@
   (lambda (lst)
     (if (null? lst)
         lst
-        (build-list (list-to-env lst)))))
+        (build-list (list-to-env lst) lst))))
 
 (define list-to-env
   (lambda (lst)
@@ -73,13 +73,17 @@
   )
 )
 
-
-
 (define build-list
-  (lambda (lst)
-    '()
+  (lambda (env lst)
+    (if (null? lst)
+        lst
+        (cons (cons (car lst) (list (apply-env env (car lst)))) (build-list env (remove (car lst) lst)))
+    )
   )
 )
+
+(define remove (lambda (item list) (cond ((null? list) list) ((eq? item (car list)) (remove item (cdr list))) (else (cons(car list) (remove item (cdr list))) ) )))
+
 (define path
   (lambda (n t)
     ((null? t) #f)
