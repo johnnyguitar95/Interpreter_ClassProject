@@ -57,8 +57,26 @@
 
 (define symbol-count
   (lambda (lst)
-    (cdr lst)))
+    (if (null? lst)
+        lst
+        (build-list (list-to-env lst)))))
 
+(define list-to-env
+  (lambda (lst)
+    (if (null? lst)
+        (empty-env)
+        ((has-binding? (list-to-env (cdr lst)) (car lst))
+                      (extend-env (car lst) (+ (apply-env (list-to-env (cdr lst)) (car lst)) 1) (list-to-env (cdr lst)))
+                      (extend-env (car lst) 1 (list-to-env (cdr lst)))
+        )
+    )
+  )
+)
+(define build-list
+  (lambda (lst)
+    '()
+  )
+)
 (define path
   (lambda (n t)
     ((null? t) #f)
