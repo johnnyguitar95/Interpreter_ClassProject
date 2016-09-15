@@ -86,7 +86,20 @@
 
 (define path
   (lambda (n t)
-    ((null? t) #f)
-  ))
+    (if (tree-search n t)
+        (cases tree t
+          (tree-null () #f)
+          (tree-node (datum left right)
+                     (cond
+                       ((eq? n datum) '())
+                       ((< n datum) (cons 'left (path n left)))
+                       (else (cons 'right (path n right)))
+                     )
+          )
+        )
+        #f
+    )
+  )
+)
 
 (provide environment empty-env extend-env apply-env has-binding? symbol-count path)
