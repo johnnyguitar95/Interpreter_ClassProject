@@ -19,7 +19,7 @@
           ((pair? datum)
            (if (eqv? (car datum) 'lambda)
                (lambda-exp
-                (car (cadr datum))
+                (cadr datum)
                 (parse-expression (caddr datum)))
                (app-exp
                 (parse-expression (car datum))
