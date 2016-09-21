@@ -23,7 +23,7 @@
                 (parse-expression (caddr datum)))
                (app-exp
                 (parse-expression (car datum))
-                (map parse-expression (cdr datum))))) 
+                (parse-expression (cadr datum)))))
           (else (report-invalid-concrete-syntax datum)))
     )
 )
@@ -33,7 +33,7 @@
     (eopl:error 'datum "Invalid Syntax for datum")))
 
 (define unparse-lc-exp
-    (lambda (exp)
+    (lambda (ast)
 	(cases lc-exp exp
           (var-exp (var) var)
           (lambda-exp (bound-var body)
