@@ -40,7 +40,7 @@
              (list 'lambda bound-var
                (unparse-lc-exp body)))
           (app-exp (rator rand)
-             (list
+             (cons
               (unparse-lc-exp rator) (map unparse-lc-exp rand)))
 )))
 
