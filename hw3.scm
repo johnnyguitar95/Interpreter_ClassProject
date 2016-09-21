@@ -37,11 +37,11 @@
 	(cases lc-exp exp
           (var-exp (var) var)
           (lambda-exp (bound-var body)
-             (list 'lambda (list bound-var)
+             (list 'lambda bound-var
                (unparse-lc-exp body)))
           (app-exp (rator rand)
              (list
-              (unparse-lc-exp rator) (unparse-lc-exp rand)))
+              (unparse-lc-exp rator) (map unparse-lc-exp rand)))
 )))
 
 (define occurs-free? 
