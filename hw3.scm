@@ -50,17 +50,39 @@
         (var-exp (var) (eqv? var search-var))
         (lambda-exp (bound-var body)
            (and
-             (not (eqv? search-var bound-var))
+             (not (contains? search-var bound-var))
              (occurs-free? search-var body)))
         (app-exp (rator rand)
              (or
                (occurs-free? search-var rator)
-               (occurs-free? search-var rand))))))
+               (occurs-free? search-var (car rand)))))))
 
-; we have to make a definition most likely based off occurs-free
+(define contains?
+  (lambda (search-var lst)
+    (cond
+      ((null? lst) #f)
+      ((eqv? search-var (car lst)) #t)
+      (else
+       (contains? search-var (cdr lst)))))) 
+
 (define occurs-bound?
-  (lambda (lst)
-    (cons 'a ('b))
+  (lambda (search-var exp)
+    (cases lc-exp exp
+      (var-exp (var) #f)
+      (lambda-exp (bound-var body)
+                  (or
+                   (and (contains? search-var bound-var)
+                       (not (occurs-bound? search-var body)))
+                   (occurs-bound? search-var body)
+                   )
+                  )
+      (app-exp (rator rand)
+               (or
+                (occurs-bound? search-var rator)
+                (occurs-bound? search-var (car rand))
+                )
+               )
+      )
     ))
 
 
