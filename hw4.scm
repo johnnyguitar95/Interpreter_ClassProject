@@ -14,21 +14,20 @@
 
 ;This is the grammar specified in homework specs
 (define expression-grammar
-  '((a-program ("(" exp ")") prog-exp)
+  '((a-program (exp) prog-exp)
     
     (exp (number) const-exp)
     (exp (identifier) var-exp)
     (exp ("(" sub-exp ")") shell-exp)
     
     (sub-exp ("if" boolexp exp exp) if-exp)
-    (sub-exp ("let" "(" (arbno sublet-exp) ")") let-exp)
-    (sublet-exp (identifier exp) slet-exp)
+    (sub-exp ("let" "(" (arbno sublet-exp) ")" exp) let-exp)
+    (sublet-exp ("(" identifier exp ")") slet-exp)
     (sub-exp ("add" exp exp) add-exp)
     (sub-exp ("sub" exp exp) min-exp)
-    (sub-exp ("m" subm-exp) m-exp)
-    (subm-exp ("ul" exp exp) mul-exp)
+    (sub-exp ("mul" exp exp) mul-exp)
     (sub-exp ("div" exp exp) div-exp)
-    (subm-exp ("od" exp exp) mod-exp)
+    (sub-exp ("mod" exp exp) mod-exp)
     
     (boolexp ("#" sub-boolval)  pound-exp)
     (boolexp ("(" op-bool ")") obool-exp)
