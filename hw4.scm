@@ -25,9 +25,9 @@
     ;(sublet-exp ("(" identifier exp ")") slet-exp)
     (sub-exp ("add" exp exp) add-exp)
     (sub-exp ("sub" exp exp) min-exp)
-    ;(sub-exp ("mul" exp exp) mul-exp)
-    ;(sub-exp ("div" exp exp) div-exp)
-    ;(sub-exp ("mod" exp exp) mod-exp)
+    (sub-exp ("mul" exp exp) mul-exp)
+    (sub-exp ("div" exp exp) div-exp)
+    (sub-exp ("mod" exp exp) mod-exp)
     
     ;(boolexp ("#" sub-boolval)  pound-exp)
     ;(boolexp ("(" op-bool ")") obool-exp)
@@ -88,10 +88,21 @@
 (define value-of-body
   (lambda (exp env)
     (cases sub-exp exp
+      ;case for adding expressions
       (add-exp (exp1 exp2)
        (+ (value-of exp1 env) (value-of exp2 env)))
+      ;case for subtracting expressions
       (min-exp (exp1 exp2)
        (- (value-of exp1 env) (value-of exp2 env)))
+      ;case for multiplying expressions
+      (mul-exp (exp1 exp2)
+       (* (value-of exp1 env) (value-of exp2 env)))
+      ;case for dividing expressions
+      (div-exp (exp1 exp2)
+       (quotient (value-of exp1 env) (value-of exp2 env)))
+      ;case for mod expressions
+      (mod-exp (exp1 exp2)
+       (remainder (value-of exp1 env) (value-of exp2 env)))
       )))
 
 
