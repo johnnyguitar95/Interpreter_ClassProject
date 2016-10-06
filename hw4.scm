@@ -30,15 +30,15 @@
     (sub-exp ("mod" exp exp) mod-exp)
     
     (boolexp ("#" sub-boolval)  pound-exp)
-    ;(boolexp ("(" op-bool ")") obool-exp)
+    (boolexp ("(" op-bool ")") obool-exp)
     (sub-boolval ("t") true-exp)
     (sub-boolval ("f") false-exp)
-    ;(op-bool ("equal" exp exp) eq-exp)
-    ;(op-bool ("lesser" exp exp) lt-exp)
-    ;(op-bool ("greater" exp exp) gt-exp)
-    ;(op-bool ("and" boolexp boolexp) and-exp)
-    ;(op-bool ("or" boolexp boolexp) or-exp)
-    ;(op-bool ("xor" boolexp boolexp) xor-exp)
+    (op-bool ("equal" exp exp) eq-exp)
+    (op-bool ("lesser" exp exp) lt-exp)
+    (op-bool ("greater" exp exp) gt-exp)
+    (op-bool ("and" boolexp boolexp) and-exp)
+    (op-bool ("or" boolexp boolexp) or-exp)
+    (op-bool ("xor" boolexp boolexp) xor-exp)
     ))
 
 (define scan&parse (sllgen:make-string-parser scanner-spec-lc expression-grammar))
@@ -136,6 +136,8 @@
     (cases boolexp bool
       (pound-exp (subbool)
          (evaluate-pound subbool))
+      (obool-exp (subbool)
+         (evaluate-bool-exp subbool env))
       )))
 
 (define evaluate-pound
@@ -146,6 +148,25 @@
       (false-exp ()
          #f)
       )))
+
+(define evaluate-bool-exp
+  (lambda (bool env)
+    (cases op-bool bool
+      (eq-exp (exp1 exp2)
+              (eq? (value-of exp1 env) (value-of exp2 env)))
+      (lt-exp (exp1 exp2)
+              (< (value-of exp1 env) (value-of exp2 env)))
+      (gt-exp (exp1 exp2)
+              (> (value-of exp1 env) (value-of exp2 env)))
+      (and-exp (exp1 exp2)
+               (and (value-of-bool exp1 env) (value-of-bool exp2 env)))
+      (or-exp (exp1 exp2)
+              (or (value-of-bool exp1 env) (value-of-bool exp2 env)))
+      (xor-exp (exp1 exp2)
+              (not(eq? (value-of-bool exp1 env) (value-of-bool exp2 env))))
+    )
+  )
+)
 
 (provide scan&parse run)
 
