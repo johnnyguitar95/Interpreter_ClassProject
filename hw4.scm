@@ -20,7 +20,7 @@
     (exp (identifier) var-exp)
     (exp ("(" sub-exp ")") shell-exp)
     
-    ;(sub-exp ("if" boolexp exp exp) if-exp)
+    (sub-exp ("if" boolexp exp exp) if-exp)
     (sub-exp ("let" "(" (arbno sublet-exp) ")" exp) let-exp)
     (sublet-exp ("(" identifier exp ")") slet-exp)
     (sub-exp ("add" exp exp) add-exp)
@@ -29,10 +29,10 @@
     (sub-exp ("div" exp exp) div-exp)
     (sub-exp ("mod" exp exp) mod-exp)
     
-    ;(boolexp ("#" sub-boolval)  pound-exp)
+    (boolexp ("#" sub-boolval)  pound-exp)
     ;(boolexp ("(" op-bool ")") obool-exp)
-    ;(sub-boolval ("t") true-exp)
-    ;(sub-boolval ("f") false-exp)
+    (sub-boolval ("t") true-exp)
+    (sub-boolval ("f") false-exp)
     ;(op-bool ("equal" exp exp) eq-exp)
     ;(op-bool ("lesser" exp exp) lt-exp)
     ;(op-bool ("greater" exp exp) gt-exp)
@@ -89,6 +89,11 @@
 (define value-of-body
   (lambda (exp env)
     (cases sub-exp exp
+      ;case for if expressions
+      (if-exp (bool exp1 exp2)
+        (cond
+          ((value-of-bool bool env) (value-of exp1 env))
+        (else (value-of exp2 env))))
       ;case for let expressions  
       (let-exp (lstexp exp1)
         (value-of exp1 (sublet-iterator lstexp env)) 
@@ -126,7 +131,21 @@
         (extend-env id (value-of exp1 env) env);returns environment
         ))))
       
+(define value-of-bool
+  (lambda (bool env)
+    (cases boolexp bool
+      (pound-exp (subbool)
+         (evaluate-pound subbool))
+      )))
 
+(define evaluate-pound
+  (lambda (subbool)
+    (cases sub-boolval subbool
+      (true-exp ()
+         #t)
+      (false-exp ()
+         #f)
+      )))
 
 (provide scan&parse run)
 

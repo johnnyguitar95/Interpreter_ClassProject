@@ -1,0 +1,7 @@
+#lang eopl
+
+(define testingtrue
+  (lambda (bool)
+    ((if #t 45)
+    5
+    ))
