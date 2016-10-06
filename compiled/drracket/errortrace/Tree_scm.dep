@@ -1,1 +1,1 @@
-("6.2.1" ("72b5545b9de8680f7d7500a7e2e7b72267c73011" . "364af3b484e009f79ca52d3bf84afe065bd698d5") (collects #"eopl" #"main.rkt") (collects #"errortrace" #"errortrace-key.rkt") (collects #"eopl" #"lang" #"reader.rkt"))
+("6.6" ("927efb1257ed13514e0aae6d29bd0926a6d0648f" . "144ac4367a33538d1a42b2877ddca9af9a8135f7") (collects #"eopl" #"lang" #"reader.rkt") (collects #"eopl" #"main.rkt") (collects #"errortrace" #"errortrace-key.rkt"))
