@@ -72,6 +72,8 @@
     (cases a-program pgm
       (prog-exp (exp)
          (value-of exp (empty-env)))
+      (else
+       (eopl:error 'pgm "Improper program ~s" pgm))
       )))
 
 (define value-of
@@ -83,6 +85,8 @@
     (var-exp (var) (apply-env env var))
     ;case for general expressions
     (shell-exp (body) (value-of-body body env))
+    (else
+       (eopl:error 'ex "Improper expression ~s" ex))
    )))
 
 ;value of a general expression
@@ -113,6 +117,8 @@
       ;case for mod expressions
       (mod-exp (exp1 exp2)
        (remainder (value-of exp1 env) (value-of exp2 env)))
+      (else
+       (eopl:error 'exp "Improper subexpression ~s" exp))
       )))
 
 ;helper function to go through the list of sublet expressions
@@ -129,7 +135,10 @@
     (cases sublet-exp exp
       (slet-exp (id exp1)
         (extend-env id (value-of exp1 env) env);returns environment
-        ))))
+        )
+      (else
+       (eopl:error 'exp "Improper sublet expression ~s" exp))
+      )))
       
 (define value-of-bool
   (lambda (bool env)
@@ -138,6 +147,8 @@
          (evaluate-pound subbool))
       (obool-exp (subbool)
          (evaluate-bool-exp subbool env))
+      (else
+       (eopl:error 'bool "Improper boolean ~s" bool))
       )))
 
 (define evaluate-pound
@@ -147,6 +158,8 @@
          #t)
       (false-exp ()
          #f)
+      (else
+       (eopl:error 'subbool "Improper boolean ~s" subbool))
       )))
 
 (define evaluate-bool-exp
@@ -164,6 +177,8 @@
               (or (value-of-bool exp1 env) (value-of-bool exp2 env)))
       (xor-exp (exp1 exp2)
               (not(eq? (value-of-bool exp1 env) (value-of-bool exp2 env))))
+      (else
+       (eopl:error 'bool "Improper boolean subexpression ~s" bool))
     )
   )
 )
