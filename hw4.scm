@@ -21,8 +21,8 @@
     (exp ("(" sub-exp ")") shell-exp)
     
     ;(sub-exp ("if" boolexp exp exp) if-exp)
-    ;(sub-exp ("let" "(" (arbno sublet-exp) ")" exp) let-exp)
-    ;(sublet-exp ("(" identifier exp ")") slet-exp)
+    (sub-exp ("let" "(" (arbno sublet-exp) ")" exp) let-exp)
+    (sublet-exp ("(" identifier exp ")") slet-exp)
     (sub-exp ("add" exp exp) add-exp)
     (sub-exp ("sub" exp exp) min-exp)
     (sub-exp ("mul" exp exp) mul-exp)
@@ -85,12 +85,17 @@
     (shell-exp (body) (value-of-body body env))
    )))
 
+;value of a general expression
 (define value-of-body
   (lambda (exp env)
     (cases sub-exp exp
+      ;case for let expressions  
+      (let-exp (lstexp exp1)
+        (value-of exp1 (sublet-iterator lstexp env)) 
+      )
       ;case for adding expressions
       (add-exp (exp1 exp2)
-       (+ (value-of exp1 env) (value-of exp2 env)))
+        (+ (value-of exp1 env) (value-of exp2 env)))
       ;case for subtracting expressions
       (min-exp (exp1 exp2)
        (- (value-of exp1 env) (value-of exp2 env)))
@@ -104,6 +109,23 @@
       (mod-exp (exp1 exp2)
        (remainder (value-of exp1 env) (value-of exp2 env)))
       )))
+
+;helper function to go through the list of sublet expressions
+(define sublet-iterator
+  (lambda (exp env);exp is a list and env is the environment 
+    (cond
+      ((null? exp) env)
+      (else(sublet-iterator (cdr exp) (value-of-subletexp (car exp) env)))
+  )))
+
+;helper function for let expression
+(define value-of-subletexp
+  (lambda (exp env)
+    (cases sublet-exp exp
+      (slet-exp (id exp1)
+        (extend-env id (value-of exp1 env) env);returns environment
+        ))))
+      
 
 
 (provide scan&parse run)
