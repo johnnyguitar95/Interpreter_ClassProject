@@ -24,7 +24,7 @@
     ;(sub-exp ("let" "(" (arbno sublet-exp) ")" exp) let-exp)
     ;(sublet-exp ("(" identifier exp ")") slet-exp)
     (sub-exp ("add" exp exp) add-exp)
-    (sub-exp ("sub" exp exp) min-exp)
+    ;(sub-exp ("sub" exp exp) min-exp)
     ;(sub-exp ("mul" exp exp) mul-exp)
     ;(sub-exp ("div" exp exp) div-exp)
     ;(sub-exp ("mod" exp exp) mod-exp)
@@ -88,12 +88,9 @@
 (define value-of-body
   (lambda (exp env)
     (cases sub-exp exp
-      (add-exp (exp1 exp2)
-       (+ (value-of exp1 env) (value-of exp2 env)))
-      (min-exp (exp1 exp2)
-       (- (value-of exp1 env) (value-of exp2 env)))
+      (add-exp (exp exp)
+       (+ (expval->num (value-of exp env)) (expval->num (value-of exp env))))
       )))
-
 
 (provide scan&parse run)
 

@@ -16,15 +16,15 @@
 (define expression-grammar
   '((a-program (exp) prog-exp)
     
-    (exp (number) const-exp)
-    (exp (identifier) var-exp)
-    (exp ("(" sub-exp ")") shell-exp)
+    (expression (number) const-exp)
+    (expression (identifier) var-exp)
+    (expression ("(" sub-exp ")") shell-exp)
     
     ;(sub-exp ("if" boolexp exp exp) if-exp)
     ;(sub-exp ("let" "(" (arbno sublet-exp) ")" exp) let-exp)
     ;(sublet-exp ("(" identifier exp ")") slet-exp)
     (sub-exp ("add" exp exp) add-exp)
-    (sub-exp ("sub" exp exp) min-exp)
+    ;(sub-exp ("sub" exp exp) min-exp)
     ;(sub-exp ("mul" exp exp) mul-exp)
     ;(sub-exp ("div" exp exp) div-exp)
     ;(sub-exp ("mod" exp exp) mod-exp)
@@ -75,8 +75,8 @@
       )))
 
 (define value-of
- (lambda (ex env)
-  (cases exp ex
+ (lambda (exp env)
+  (cases expression exp
     ;case for constant expressions
     (const-exp (num) num)
     ;case for variable expressions
@@ -88,12 +88,9 @@
 (define value-of-body
   (lambda (exp env)
     (cases sub-exp exp
-      (add-exp (exp1 exp2)
-       (+ (value-of exp1 env) (value-of exp2 env)))
-      (min-exp (exp1 exp2)
-       (- (value-of exp1 env) (value-of exp2 env)))
+      (add-exp (exp exp)
+       (+ (expval->num (value-of exp env)) (expval->num (value-of exp env))))
       )))
-
 
 (provide scan&parse run)
 
