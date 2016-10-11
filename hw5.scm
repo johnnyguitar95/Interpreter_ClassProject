@@ -1,7 +1,7 @@
 #lang eopl
 
 
-(require "hw2.scm")
+(require "hw2m.scm")
 
 ;John Halloran and Jakob Horner 
 
@@ -19,26 +19,18 @@
     (exp (number) const-exp)
     (exp (identifier) var-exp)
     (exp ("(" sub-exp ")") shell-exp)
-    
+
+    (sub-exp ("cond" "(" (arbno exp exp  ")""(") "else" exp ")") cond-exp)
+    (sub-exp  ("lambda" "(" (arbno identifier) ")" exp) proc-exp) 
+    (sub-exp (exp (arbno exp)) cal-exp)
+               
     (sub-exp ("if" boolexp exp exp) if-exp)
     (sub-exp ("let" "(" (arbno sublet-exp) ")" exp) let-exp)
     (sublet-exp ("(" identifier exp ")") slet-exp)
-    (sub-exp ("add" exp exp) add-exp)
-    (sub-exp ("sub" exp exp) min-exp)
-    (sub-exp ("mul" exp exp) mul-exp)
-    (sub-exp ("div" exp exp) div-exp)
-    (sub-exp ("mod" exp exp) mod-exp)
     
     (boolexp ("#" sub-boolval)  pound-exp)
-    (boolexp ("(" op-bool ")") obool-exp)
     (sub-boolval ("t") true-exp)
     (sub-boolval ("f") false-exp)
-    (op-bool ("equal" exp exp) eq-exp)
-    (op-bool ("lesser" exp exp) lt-exp)
-    (op-bool ("greater" exp exp) gt-exp)
-    (op-bool ("and" boolexp boolexp) and-exp)
-    (op-bool ("or" boolexp boolexp) or-exp)
-    (op-bool ("xor" boolexp boolexp) xor-exp)
     ))
 
 (define scan&parse (sllgen:make-string-parser scanner-spec-lc expression-grammar))
@@ -53,7 +45,7 @@
   (lambda (pgm)
     (cases a-program pgm
       (prog-exp (exp)
-         (value-of exp (empty-env)))
+         (value-of exp (extend-env "add"  (empty-env))))
       (else
        (eopl:error 'pgm "Improper program ~s" pgm))
       )))
@@ -84,21 +76,6 @@
       (let-exp (lstexp exp1)
         (value-of exp1 (sublet-iterator lstexp env)) 
       )
-      ;case for adding expressions
-      (add-exp (exp1 exp2)
-        (+ (value-of exp1 env) (value-of exp2 env)))
-      ;case for subtracting expressions
-      (min-exp (exp1 exp2)
-       (- (value-of exp1 env) (value-of exp2 env)))
-      ;case for multiplying expressions
-      (mul-exp (exp1 exp2)
-       (* (value-of exp1 env) (value-of exp2 env)))
-      ;case for dividing expressions
-      (div-exp (exp1 exp2)
-       (quotient (value-of exp1 env) (value-of exp2 env)))
-      ;case for mod expressions
-      (mod-exp (exp1 exp2)
-       (remainder (value-of exp1 env) (value-of exp2 env)))
       (else
        (eopl:error 'exp "Improper subexpression ~s" exp))
       )))
@@ -127,8 +104,6 @@
     (cases boolexp bool
       (pound-exp (subbool)
          (evaluate-pound subbool))
-      (obool-exp (subbool)
-         (evaluate-bool-exp subbool env))
       (else
        (eopl:error 'bool "Improper boolean ~s" bool))
       )))
@@ -143,27 +118,6 @@
       (else
        (eopl:error 'subbool "Improper boolean ~s" subbool))
       )))
-
-(define evaluate-bool-exp
-  (lambda (bool env)
-    (cases op-bool bool
-      (eq-exp (exp1 exp2)
-              (eq? (value-of exp1 env) (value-of exp2 env)))
-      (lt-exp (exp1 exp2)
-              (< (value-of exp1 env) (value-of exp2 env)))
-      (gt-exp (exp1 exp2)
-              (> (value-of exp1 env) (value-of exp2 env)))
-      (and-exp (exp1 exp2)
-               (and (value-of-bool exp1 env) (value-of-bool exp2 env)))
-      (or-exp (exp1 exp2)
-              (or (value-of-bool exp1 env) (value-of-bool exp2 env)))
-      (xor-exp (exp1 exp2)
-              (not(eq? (value-of-bool exp1 env) (value-of-bool exp2 env))))
-      (else
-       (eopl:error 'bool "Improper boolean subexpression ~s" bool))
-    )
-  )
-)
 
 (provide scan&parse run)
 
