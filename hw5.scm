@@ -1,7 +1,7 @@
 #lang eopl
 
 
-(require "hw2m.scm")
+(require "hw2.scm")
 
 ;John Halloran and Jakob Horner 
 
@@ -45,18 +45,18 @@
   (lambda (pgm)
     (cases a-program pgm
       (prog-exp (exp)
-         (value-of exp (extend-env "add" (+ (value-of exp) (value-of exp))
-                                   (extend-env "sub" (- (value-of exp) (value-of exp))
-                                   (extend-env "mul" (* (value-of exp) (value-of exp))
-                                   (extend-env "div" (quotient (value-of exp) (value-of exp))
-                                   (extend-env "mod" (remainder (value-of exp) (value-of exp))
-                                   (extend-env "equal" (eq? (value-of exp) (value-of exp))
-                                   (extend-env "lesser" (< (value-of exp) (value-of exp))
-                                   (extend-env "greater" (> (value-of exp) (value-of exp))
-                                   (extend-env "and" (and (value-of exp) (value-of exp))
-                                   (extend-env "or" (or (value-of (value-of exp)) (value-of exp))
-                                   (extend-env "xor" (not(eq? (value-of exp) (value-of exp)))
-                                               (empty-env))))))))))))))
+         (value-of exp (extend-env "add" +
+                                   (extend-env "sub" -
+                                   (extend-env "mul" *
+                                   (extend-env "div" quotient
+                                   (extend-env "mod" remainder
+                                   (extend-env "equal" eq?
+                                   (extend-env "lesser" <
+                                   (extend-env "greater" >
+                                   ;(extend-env "and" and)
+                                   ;(extend-env "or" or)
+                                   (extend-env "xor" (not eq?)
+                                               (empty-env))))))))))))
       (else
        (eopl:error 'pgm "Improper program ~s" pgm))
       )))
@@ -80,7 +80,7 @@
     (cases sub-exp exp
       ;case for cal exp
       (cal-exp (rator rands)
-         ((value-of rator) rands))
+         ((apply-env env rator) (rand-iterator rands env)))
       ;case for if expressions
       (if-exp (bool exp1 exp2)
         (cond
@@ -95,7 +95,12 @@
       )))
 
 ;helper functions for cal-exp's 
-    
+(define rand-iterator
+  (lambda (rands env)
+    (cond
+      ((null? rands) env)
+      (else(rand-iterator (cdr rands) (value-of (car rands) env)))
+      )))
 ;helper function to go through the list of sublet expressions
 (define sublet-iterator
   (lambda (exp env);exp is a list and env is the environment 
