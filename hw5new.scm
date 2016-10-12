@@ -22,7 +22,7 @@
     (exp ("#" sub-boolval)  pound-exp)
 
     (sub-exp ("cond" "(" (arbno exp exp ")""(") "else" exp ")") cond-exp)
-    
+    ;(sub-cond (exp exp) cond-help)
     (sub-exp ("if" exp exp exp) if-exp)
     (sub-exp ("let" "(" (arbno sublet-exp) ")" exp) let-exp)
     (sublet-exp ("(" identifier exp ")") slet-exp)
@@ -80,8 +80,8 @@
   (lambda (exp env)
     (cases sub-exp exp
       ;case for cond expressions
-      ;(cond-exp (list-exp1 list-exp2 exp3)
-                
+      (cond-exp (list-exp1 list-exp2 else-exp)
+        (evaluate-conds list-exp1 list-exp2 else-exp env))
       ;case for if expressions
       (if-exp (bool exp1 exp2)
         (cond
@@ -129,6 +129,14 @@
       ((null? exp) env)
       (else(sublet-iterator (cdr exp) (value-of-subletexp (car exp) env)))
   )))
+
+;helper function for cond statements
+(define evaluate-conds
+  (lambda (list-exp1 list-exp2 else-exp env)
+    (cond
+      ((null? list-exp1) (value-of else-exp env))
+      ((value-of (car list-exp1) env) (value-of (car list-exp2) env))
+      (else (evaluate-conds (cdr list-exp1) (cdr list-exp2) else-exp env)))))
 
 ;helper function for let expression
 (define value-of-subletexp
