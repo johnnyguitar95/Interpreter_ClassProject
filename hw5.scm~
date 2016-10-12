@@ -1,60 +1,9 @@
 #lang eopl
 
 
-;(require "hw2m.scm") all necessary implementations ported over
+(require "hw2m.scm")
 
 ;John Halloran and Jakob Horner 
-
-;this is the defining environment from hw2
-(define-datatype environment environment?
-  (empty-env)
-  (extend-env
-   (var (lambda (value) #t))
-   (val (lambda (value) #t))
-   (env environment?)
-  )
-)
-
-(define apply-env
-  (lambda (env search-var)
-    (if (environment? env)
-        (cases environment env
-          (empty-env () (report-no-binding-found search-var))
-          (extend-env (var val env)
-                      (if (eq? var search-var)
-                          val
-                          (apply-env env search-var)
-                      )
-          )
-        )
-        (report-invalid-env env)
-    )
-  )
-)
-(define has-binding?
-  (lambda (env s)
-    (if (environment? env)
-        (cases environment env
-          (empty-env () #f)
-          (extend-env (var val env)
-                      (if (eq? var s)
-                          #t
-                          (has-binding? env s)
-                      )
-          )
-        )
-        (report-invalid-env env)
-    )
-  )
-)
-
-(define report-no-binding-found
-  (lambda (search-var)
-    (eopl:error 'apply-env "No binding for ~s" search-var)))
-
-(define report-invalid-env
-  (lambda (env)
-    (eopl:error 'apply-env "Bad environment: ~s" env)))
 
 ;This is where we will put the scanner stuff from the example in class
 (define scanner-spec-lc
