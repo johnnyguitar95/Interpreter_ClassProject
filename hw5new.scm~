@@ -1,58 +1,9 @@
 #lang eopl
 
-;John Halloran and Jakob Horner
-;This is necessary code ported from homework 2
-(define-datatype environment environment?
-  (empty-env)
-  (extend-env
-   (var (lambda (value) #t))
-   (val (lambda (value) #t))
-   (env environment?)
-  )
-)
 
-(define apply-env
-  (lambda (env search-var)
-    (if (environment? env)
-        (cases environment env
-          (empty-env () (report-no-binding-found search-var))
-          (extend-env (var val env)
-                      (if (eq? var search-var)
-                          val
-                          (apply-env env search-var)
-                      )
-          )
-        )
-        (report-invalid-env env)
-    )
-  )
-)
+(require "hw2.scm")
 
-(define has-binding?
-  (lambda (env s)
-    (if (environment? env)
-        (cases environment env
-          (empty-env () #f)
-          (extend-env (var val env)
-                      (if (eq? var s)
-                          #t
-                          (has-binding? env s)
-                      )
-          )
-        )
-        (report-invalid-env env)
-    )
-  )
-)
-
-(define report-no-binding-found
-  (lambda (search-var)
-    (eopl:error 'apply-env "No binding for ~s" search-var)))
-
-(define report-invalid-env
-  (lambda (env)
-    (eopl:error 'apply-env "Bad environment: ~s" env)))
-
+;John Halloran and Jakob Horner 
 
 ;This is where we will put the scanner stuff from the example in class
 (define scanner-spec-lc
@@ -71,6 +22,7 @@
     (exp ("#" sub-boolval)  pound-exp)
 
     (sub-exp ("cond" "(" (arbno exp exp ")""(") "else" exp ")") cond-exp)
+    ;(sub-cond (exp exp) cond-help)
     (sub-exp ("if" exp exp exp) if-exp)
     (sub-exp ("let" "(" (arbno sublet-exp) ")" exp) let-exp)
     (sublet-exp ("(" identifier exp ")") slet-exp)
