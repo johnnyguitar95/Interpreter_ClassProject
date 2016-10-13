@@ -36,12 +36,10 @@
                          (check-equal? (run "(cond (#t 10) (else 20))") 10))
               (test-case "looks-wrong-but-grammatically-correct-cond"
                          (check-equal? (run "(cond (#t 10) (#t 30) (#t 50) (else 20))") 10))
-              ;(test-case "a-bit-complicated-cond"
-               ;          (check-equal? (run "(let ((x 5) (y 7)) (cond ((greater x 6) y) ((lesser y 3) x) (else 100)))") 100))
-              ;(test-case "tricky-cond2"
-                   ;      (check-equal? (run "(let ((x 5) (y 7)) (cond ((greater x 6) y) ((lesser y 9) x) (else 100)))") 5))))
-
-))
+              (test-case "a-bit-complicated-cond"
+                         (check-equal? (run "(let ((x 5) (y 7)) (cond ((greater x 6) y) ((lesser y 3) x) (else 100)))") 100))
+              (test-case "tricky-cond2"
+                         (check-equal? (run "(let ((x 5) (y 7)) (cond ((greater x 6) y) ((lesser y 9) x) (else 100)))") 5))))
 
               
               
