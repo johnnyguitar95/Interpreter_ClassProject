@@ -10,6 +10,10 @@
   (test-suite "Homework 5 Tests"
               (test-case "run-num"
                          (check-equal? (run "5") 5))
+              (test-case "basic-true"
+                         (check-equal? (run "#t") #t))
+              (test-case "basic-false"
+                         (check-equal? (run "#f") #f))
               (test-case "run-add-nums"
                          (check-equal? (run "(add 5 6)") 11))
               (test-case "run-sub-nums"
