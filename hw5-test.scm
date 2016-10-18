@@ -1,13 +1,13 @@
 #lang scheme/base
 
-(require (planet schematics/schemeunit:3) "hw5new.scm")
+(require (planet schematics/schemeunit:3) "hw5.scm")
 (require (planet schematics/schemeunit:3/text-ui))
 
 ;John Halloran and Jakob Horner
 ;Some code stylings from Jim Reily used
 
-(define demo-tests-hw5
-  (test-suite "Homework 5 Tests"
+(define demo-tests-hw4
+  (test-suite "Homework 4 Tests"
               (test-case "run-num"
                          (check-equal? (run "5") 5))
               (test-case "basic-true"
@@ -35,7 +35,9 @@
               (test-case "run-complicated-expression"
                          (check-equal? (run "(let ((x 5) (y 6)) (if (and (greater x 10) (equal y 6)) 20 40))") 40))
               (test-case "let-inside-let-inside-let"
-                         (check-equal? (run "(let ((x (let ((a 5) (b 6)) (add a (let ((k 7)) (add k b))))) (y 5)) (mul x y))") 90))
+                         (check-equal? (run "(let ((x (let ((a 5) (b 6)) (add a (let ((k 7)) (add k b))))) (y 5)) (mul x y))") 90))))
+(define demo-tests-hw5
+  (test-suite "Homework 5 Tests"
               (test-case "simple-cond"
                          (check-equal? (run "(cond (#t 10) (else 20))") 10))
               (test-case "looks-wrong-but-grammatically-correct-cond"
@@ -48,11 +50,30 @@
                          (check-equal? (run "(let ((x 5) (y 8) (z 2)) (cond ((and (greater (add x y) (add y z)) (lesser y z)) 100) ((or #f (equal x y)) 200) (else 300)))") 300))
               (test-case "tricky-cond4"
                          (check-equal? (run "(let ((x 5) (y 8) (z 2)) (cond ((and (greater (add x y) (add y z)) (lesser y z)) 100) ((or #f (equal x x)) 200) (else 300)))") 200))
-
-
+              (test-case "Can express lambda"
+                         (check-equal? (run "(lambda (x) x)") '(lambda (x) x)))
+              (test-case "Can express lambda with an expression for a body"
+                         (check-equal? (run "(lambda (x y) (add x y))") '(lambda (x y) (add x y))))
+              (test-case "Can express lambda with outer environment"
+                         (check-equal? (run "((lambda (y) (lambda (z) y)) 1)") '(lambda (z) y)))
+              (test-case "Can run application"
+                         (check-equal? (run "((lambda (x y) y) 1 2)") 2))
+              (test-case "Can run assignment5-supplied test case 1"
+                         (check-equal? (run "((lambda (x y) (add x y)) 10 3)") 13))
+              (test-case "Can run assignment5-supplied test case 2"
+                         (check-equal? (run "(cond (#t 10) (else 20))") 10))
+              (test-case "Can run assignment5-supplied test case 3"
+                         (check-equal? (run "((lambda (x) (cond ((lesser x 0) (sub 0 x)) (else x))) 10)") 10))
+              (test-case "Can run assignment5-supplied test case 4"
+                         (check-equal? (run "((lambda (x) (cond ((lesser x 0) (sub 0 x)) (else x))) (sub 0 10))") 10))
+              (test-case "Can express lambda with an unparsed body of all types of expressions"
+                         (check-equal?
+                          (run "(lambda () (let ((a 0)) (let ((b a) (c (if #t 0 1)) (d (cond (#t 1) (else 4))) (e (lambda (x) x)) (f ((lambda (x) x) 1)) (g (add x 1))) a)))")
+                          '(lambda () (let ((a 0)) (let ((b a) (c (if #t 0 1)) (d (cond (#t 1) (else 4))) (e (lambda (x) x)) (f ((lambda (x) x) 1)) (g (add x 1))) a)))))   
               ))
 
 
               
               
+(run-tests demo-tests-hw4)
 (run-tests demo-tests-hw5)
