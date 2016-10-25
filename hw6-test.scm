@@ -91,8 +91,11 @@
               (test-case "Car Case 1"
                          (check-equal? (run "(car (cons 4 (emptylist)))") 4))
               (test-case "Car Case 2"
-                         (check-equal? (run "(car (cons (add 4 5) (cons (mul 2 3) (cons (div 6 2) (emptylist))))") 4))
-              
+                         (check-equal? (run "(car (cons (add 4 5) (cons (mul 2 3) (cons (div 6 2) (emptylist)))))") 9))
+              (test-case "Car Case 3"
+                         (check-equal? (run "(cons 8 (car (cons (cons 5 (emptylist)) (cons 7 (emptylist)))))") '(8 5)))
+              (test-case "Car Case 4"
+                         (check-equal? (run "(cons (mul 4 2) (car (cons (cons (add 3 2) (emptylist)) (cons (add 6 1) (emptylist)))))") '(8 5)))
               ))
               
               
