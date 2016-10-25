@@ -66,6 +66,10 @@
                          (check-equal? (run "((lambda (x) (cond ((lesser x 0) (sub 0 x)) (else x))) 10)") 10))
               (test-case "Can run assignment5-supplied test case 4"
                          (check-equal? (run "((lambda (x) (cond ((lesser x 0) (sub 0 x)) (else x))) (sub 0 10))") 10))
+              (test-case "Currying test case"
+                         (check-equal? (run "((lambda (x) ((lambda (y) (add x y)) 5)) 4)") 9))
+              (test-case "Harder Currying test case"
+                         (check-equal? (run "((lambda (y z) ((lambda (x) (let ((a 6)) (mul (add y x) (add a z)))) 3)) 4 5)") 77))
               (test-case "Difficult lambda case 1"
                          (check-equal? (run "((lambda (x y z) (cond ((greater x y) (add 5 z)) ((lesser x y) (sub z 5)) (else z))) (let ((a 5)(b 7)(c 2)) (add (mul a b) (mul b c))) (div 16 4) 19)") 24))
               ))
