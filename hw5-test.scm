@@ -72,7 +72,9 @@
                          (check-equal? (run "((lambda (y z) ((lambda (x) (let ((a 6)) (mul (add y x) (add a z)))) 3)) 4 5)") 77))
               (test-case "Difficult lambda case 1"
                          (check-equal? (run "((lambda (x y z) (cond ((greater x y) (add 5 z)) ((lesser x y) (sub z 5)) (else z))) (let ((a 5)(b 7)(c 2)) (add (mul a b) (mul b c))) (div 16 4) 19)") 24))
-              ))
+              (test-case "Can express lambda with an unparsed body of all types of expressions"
+                          (check-equal? (run "(lambda () (let ((a 0)) (let ((b a) (c (if #t 0 1)) (d (cond (#t 1) (else 4))) (e (lambda (x) x)) (f ((lambda (x) x) 1)) (g (add x 1))) a)))")
+                           '(lambda () (let ((a 0)) (let ((b a) (c (if #t 0 1)) (d (cond (#t 1) (else 4))) (e (lambda (x) x)) (f ((lambda (x) x) 1)) (g (add x 1))) a)))))   ))
 
 
               
