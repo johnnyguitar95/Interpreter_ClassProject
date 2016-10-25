@@ -96,6 +96,15 @@
                          (check-equal? (run "(cons 8 (car (cons (cons 5 (emptylist)) (cons 7 (emptylist)))))") '(8 5)))
               (test-case "Car Case 4"
                          (check-equal? (run "(cons (mul 4 2) (car (cons (cons (add 3 2) (emptylist)) (cons (add 6 1) (emptylist)))))") '(8 5)))
+              (test-case "Car Case with an if Statement"
+                         (check-equal? (run "(let ((x 5) (y 2) (z 3)) (car (if (greater y z) (cons x (cons y (cons z (emptylist)))) (cons z (cons y (cons x (emptylist)))))))") 3))
+              (test-case "Cdr Case 1"
+                         (check-equal? (run "(cdr (cons 4 (cons 3 (cons 2 (cons 1 (emptylist))))))") '(3 2 1)))
+              (test-case "Cdr Case 2"
+                         (check-equal? (run "(cons (cdr (cons 3 (cons 2 (cons 1 (emptylist))))) (cdr (cons 10 (cons 9 (cons 8 (emptylist))))))") '((2 1) 9 8)))
+              (test-case "Cdr Case 3 with conds"
+                         (check-equal? (run "(let ((x 5) (y 5) (z 2)) (cdr (cond ((greater x y) (cons x (cons z (cons y (emptylist)))))
+                                                                                 ((equal x y) (cons y (cons z (cons x (emptylist))))) (else (cons z (cons y (cons x (emptylist))))))))") '(2 5)))
               ))
               
               
