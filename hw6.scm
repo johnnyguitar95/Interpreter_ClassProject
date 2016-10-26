@@ -165,6 +165,9 @@
     (cases a-program pgm
       (prog-exp (exp)
          (value-of exp
+                   (extend-env 'null? (proc-val (prim-procedure 'null (lambda (x) (cases list-type x
+                                                                                    (empty-list () (bool-val #t))
+                                                                                    (else (bool-val #f)))) 1))
                    (extend-env 'cdr (proc-val (prim-procedure 'cdr (lambda (x) (cases list-type x
                                                                                  (cons-cell-type (car cdr) cdr)
                                                                                  (else (eopl:error 'car "Not a valid cons-cell-type ~s" x))))1))
@@ -185,7 +188,7 @@
                    (extend-env 'sub (proc-val (prim-procedure 'sub  (lambda (x y) (num-val (- (expval->num x) (expval->num y)))) 2))
                    (extend-env 'add (proc-val (prim-procedure 'add  (lambda (x y) (num-val (+ (expval->num x) (expval->num y)))) 2))
                                            (empty-env)
-                                           )))))))))))))))))
+                                           ))))))))))))))))))
       (else
        (eopl:error 'pgm "Improper program ~s" pgm))
       )))
@@ -262,6 +265,7 @@
                   (cond
                   ((zero? argnum) (oper))
                   ((eq? argnum 1) (oper (expval->lst (value-of (car val) env))))
+                  ((eq? name 'null?) (oper (value-of car val)))
                   ((eq? argnum 2) (oper (value-of (car val) env) (value-of (car (cdr val)) env)))
                   (else (eopl:error 'argnum "Bad argument number ~s" argnum)))))))
 

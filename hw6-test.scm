@@ -105,6 +105,12 @@
               (test-case "Cdr Case 3 with conds"
                          (check-equal? (run "(let ((x 5) (y 5) (z 2)) (cdr (cond ((greater x y) (cons x (cons z (cons y (emptylist)))))
                                                                                  ((equal x y) (cons y (cons z (cons x (emptylist))))) (else (cons z (cons y (cons x (emptylist))))))))") '(2 5)))
+              (test-case "Null? with just an emptylist"
+                         (check-equal? (run "(null? (emptylist))") #t))
+              (test-case "NUll? with using a cdr of a list"
+                         (check-equal? (run "(null? (cdr (cons 4 (emptylist))))") #t))
+              (test-case "Null? that should be false"
+                         (check-equal? (run "(null? (cons 4 (emptylist)))") #f))
               ))
               
               
