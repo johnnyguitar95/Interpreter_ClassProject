@@ -165,6 +165,7 @@
     (cases a-program pgm
       (prog-exp (exp)
          (value-of exp
+                   (extend-env 'list (proc-val (prim-procedure 'list (lambda (lst env) (create-list lst env)) 1))
                    (extend-env 'null? (proc-val (prim-procedure 'null (lambda (x) (cases list-type x
                                                                                     (empty-list () (bool-val #t))
                                                                                     (else (bool-val #f)))) 1))
@@ -188,7 +189,7 @@
                    (extend-env 'sub (proc-val (prim-procedure 'sub  (lambda (x y) (num-val (- (expval->num x) (expval->num y)))) 2))
                    (extend-env 'add (proc-val (prim-procedure 'add  (lambda (x y) (num-val (+ (expval->num x) (expval->num y)))) 2))
                                            (empty-env)
-                                           ))))))))))))))))))
+                                           )))))))))))))))))))
       (else
        (eopl:error 'pgm "Improper program ~s" pgm))
       )))
@@ -264,9 +265,11 @@
       (prim-procedure (name oper argnum)
                   (cond
                   ((zero? argnum) (oper))
+                  ((and (eq? name 'null?) (eq? argnum 1)) (oper (value-of car val)))
+                  ((eq? name 'list) (oper val env))
                   ((eq? argnum 1) (oper (expval->lst (value-of (car val) env))))
-                  ((eq? name 'null?) (oper (value-of car val)))
                   ((eq? argnum 2) (oper (value-of (car val) env) (value-of (car (cdr val)) env)))
+                  ((eq? name 'list) (oper val))
                   (else (eopl:error 'argnum "Bad argument number ~s" argnum)))))))
 
 ;binds arguments and the values being passed
@@ -359,5 +362,15 @@
       ((null? rands) env)
       (else(rand-iterator (cdr rands) (value-of (car rands) env)))
       )))
+
+;helper function for making lists
+(define create-list
+  (lambda (lst env)
+    (cond
+      ((null? lst) (list-val (empty-list)))
+      (else
+       (list-val (cons-cell-type (value-of (car lst) env) (create-list (cdr lst) env))))
+    )))
+;(cons-cell-type x y))
 (provide scan&parse run)
 ;TA-BOT:MAILTO john.p.halloran@marquette.edu jakob.horner@marquette.edu

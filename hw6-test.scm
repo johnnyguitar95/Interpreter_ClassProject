@@ -111,6 +111,9 @@
                          (check-equal? (run "(null? (cdr (cons 4 (emptylist))))") #t))
               (test-case "Null? that should be false"
                          (check-equal? (run "(null? (cons 4 (emptylist)))") #f))
+
+              (test-case "Basic List test"
+                         (check-equal? (run "(list (lambda (x) (add x 5)) (add 4 5) (mul 2 3))") '((lambda (x) (add x 5)) 9 6)))
               ))
               
               
