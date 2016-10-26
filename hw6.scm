@@ -66,6 +66,7 @@
     (sub-exp ("if" exp exp exp) if-exp)
     (sub-exp ("lambda" "(" (arbno identifier) ")" exp) proc-exp)
     (sub-exp ("let" "(" (arbno sublet-exp) ")" exp) let-exp)
+    (sub-exp ("let*" "(" (arbno sublet-exp) ")" exp) let*-exp)
     (sublet-exp ("(" identifier exp ")") slet-exp)
     
     (sub-boolval ("#t") true-exp)
@@ -94,8 +95,8 @@
       (list-val (lst)
                 (cases list-type (expval->lst expv)
                   (empty-list () '())
-                  (cons-cell-type (car cdr)
-                            (cons (unparse car) (unparse cdr)))))      
+                  (cons-cell-type (cr cd)
+                            (cons (unparse cr) (unparse cd)))))      
       )))
 
 (define unparse-a-body
@@ -170,10 +171,10 @@
                                                                                     (empty-list () (bool-val #t))
                                                                                     (else (bool-val #f)))) 1))
                    (extend-env 'cdr (proc-val (prim-procedure 'cdr (lambda (x) (cases list-type x
-                                                                                 (cons-cell-type (car cdr) cdr)
+                                                                                 (cons-cell-type (cr cd) cd)
                                                                                  (else (eopl:error 'car "Not a valid cons-cell-type ~s" x))))1))
                    (extend-env 'car (proc-val (prim-procedure 'car (lambda (x) (cases list-type x
-                                                                                 (cons-cell-type (car cdr) car)
+                                                                                 (cons-cell-type (cr cd) cr)
                                                                                  (else (eopl:error 'car "Not a valid cons-cell-type ~s" x))))1))
                    (extend-env 'cons (proc-val (prim-procedure 'cons (lambda (x y) (list-val (cons-cell-type x y))) 2))
                    (extend-env 'emptylist (proc-val (prim-procedure 'emptylist (lambda () (list-val (empty-list))) 0))
@@ -210,8 +211,8 @@
 (define-datatype list-type list-type?
   (empty-list)
   (cons-cell-type
-   (car expval?)
-   (cdr expval?)))
+   (cr expval?)
+   (cd expval?)))
 
 ;Process data type
 (define-datatype proc proc?
@@ -265,7 +266,7 @@
       (prim-procedure (name oper argnum)
                   (cond
                   ((zero? argnum) (oper))
-                  ((and (eq? name 'null?) (eq? argnum 1)) (oper (value-of car val)))
+                  ((and (eq? name 'null?) (eq? argnum 1)) (oper (value-of (car val))))
                   ((eq? name 'list) (oper val env))
                   ((eq? argnum 1) (oper (expval->lst (value-of (car val) env))))
                   ((eq? argnum 2) (oper (value-of (car val) env) (value-of (car (cdr val)) env)))
@@ -315,17 +316,20 @@
                 (proc-val (procedure var body env)))
       ;case for let expressions  
       (let-exp (lstexp exp1)
-        (value-of exp1 (sublet-iterator lstexp env)) 
+        (value-of exp1 (sublet-iterator lstexp env env)) 
       )
+      ;case for let* expressions
+      (let*-exp (lstexp exp1)
+               (value-of exp1 (sublet*-iterator lstexp env)))
       (else
        (eopl:error 'exp "Improper subexpression ~s" exp))
       )))
 ;helper function to go through the list of sublet expressions
 (define sublet-iterator
-  (lambda (exp env);exp is a list and env is the environment 
+  (lambda (exp env-old env-new);exp is a list and env is the environment 
     (cond
-      ((null? exp) env)
-      (else(sublet-iterator (cdr exp) (value-of-subletexp (car exp) env)))
+      ((null? exp) env-new)
+      (else(sublet-iterator (cdr exp) env-old (value-of-subletexp (car exp) env-old env-new)))
   )))
 ;helper function for cond statements
 (define evaluate-conds
@@ -336,10 +340,10 @@
       (else (evaluate-conds (cdr list-exp1) (cdr list-exp2) else-exp env)))))
 ;helper function for let expression
 (define value-of-subletexp
-  (lambda (exp env)
+  (lambda (exp env-old env-new)
     (cases sublet-exp exp
       (slet-exp (id exp1)
-        (extend-env id (value-of exp1 env) env);returns environment
+        (extend-env id (value-of exp1 env-old) env-new);returns environment
         )
       (else
        (eopl:error 'exp "Improper sublet expression ~s" exp))
@@ -371,6 +375,26 @@
       (else
        (list-val (cons-cell-type (value-of (car lst) env) (create-list (cdr lst) env))))
     )))
-;(cons-cell-type x y))
+
+;helper function to go through the list of sublet* expressions
+(define sublet*-iterator
+  (lambda (exp env);exp is a list and env is the environment 
+    (cond
+      ((null? exp) env)
+      (else(sublet*-iterator (cdr exp) (value-of-sublet*exp (car exp) env)))
+  )))
+
+;helper function for let expression
+(define value-of-sublet*exp
+  (lambda (exp env)
+    (cases sublet-exp exp
+      (slet-exp (id exp1)
+        (extend-env id (value-of exp1 env) env);returns environment
+        )
+      (else
+       (eopl:error 'exp "Improper sublet expression ~s" exp))
+      )))
+
+
 (provide scan&parse run)
 ;TA-BOT:MAILTO john.p.halloran@marquette.edu jakob.horner@marquette.edu

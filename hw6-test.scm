@@ -88,6 +88,12 @@
                          (check-equal? (run "(cons (add 4 5) (cons (mul 2 3) (cons (div 6 2) (emptylist))))") '(9 6 3)))
               (test-case "Lets with cons"
                          (check-equal? (run "(let ((x 5) (y 6) (z 7)) (cons x (cons y (cons z (emptylist)))))") '(5 6 7)))
+              (test-case "Cons numbers"
+                         (check-equal? (run "(cons 2 2)") (cons 2 2)))
+              (test-case "Cons multiple numbers"
+                         (check-equal? (run "(cons 2 (cons 2 (cons 2 2)))") (cons 2 (cons 2 (cons 2 2)))))
+              (test-case "Irregular cons"
+                         (check-equal? (run "(let ((x 5) (y 6)) (cons x y))") (cons 5 6)))
               (test-case "Car Case 1"
                          (check-equal? (run "(car (cons 4 (emptylist)))") 4))
               (test-case "Car Case 2"
@@ -111,9 +117,20 @@
                          (check-equal? (run "(null? (cdr (cons 4 (emptylist))))") #t))
               (test-case "Null? that should be false"
                          (check-equal? (run "(null? (cons 4 (emptylist)))") #f))
-
               (test-case "Basic List test"
                          (check-equal? (run "(list (lambda (x) (add x 5)) (add 4 5) (mul 2 3))") '((lambda (x) (add x 5)) 9 6)))
+              (test-case "append-item-simple"
+                         (check-equal? (run "(letrec ((appenditem (lambda (x lat)
+                               (cond
+                               ((null? lat) (cons x lat))
+                               (else(cons (car lat) (appenditem x (cdr lat)))))))) (appenditem 5 (list 1 2 3 4)))") '(1 2 3 4 5)))
+              (test-case "append-item-complex"
+                         (check-equal? (run "(letrec ((appenditem (lambda (x lat)
+                               (cond
+                               ((null? lat) (cons x lat))
+                               (else(cons (car lat) (appenditem x (cdr lat)))))))) (let* ((a 1) (b (add a 1)) (c (add a 2)) (d (add a 3))) (appenditem 5 (list a b c d))))") '(1 2 3 4 5)))
+              (test-case "facotorial"
+                         (check-equal? (run "(letrec ((fact (lambda (x) (cond ((equal 0 x) 1) (else (mul x (fact (sub x 1)))))))) (fact 5))") 120))
               ))
               
               
