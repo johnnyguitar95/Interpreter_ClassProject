@@ -8,6 +8,12 @@
    (val (lambda (value) #t))
    (env environment?)
   )
+  (extend-env-rec
+   (p-name symbol?)
+   (b-var (list-of symbol?))
+   (body exp?)
+   (env environment?)
+  )
 )
 (define apply-env
   (lambda (env search-var)
@@ -20,6 +26,10 @@
                           (apply-env env search-var)
                       )
           )
+          (extend-env-rec (p-name b-var p-body saved-env)
+                      (if (eq? search-var p-name)
+                          (proc-val (procedure b-var p-body env))
+                          (apply-env saved-env search-var)))
         )
         (report-invalid-env env)
     )
@@ -30,12 +40,14 @@
     (if (environment? env)
         (cases environment env
           (empty-env () #f)
-          (extend-env (var val env)
+          (extend-env (var val saved-env)
                       (if (eq? var s)
                           #t
-                          (has-binding? env s)
+                          (has-binding? saved-env s)
                       )
           )
+          (extend-env-rec (p-name b-var p-body saved-env)
+                      (if (eq? p-name s) #t (has-binding? saved-env s)))
         )
         (report-invalid-env env)
     )
@@ -65,6 +77,7 @@
     (sub-exp (exp (arbno exp)) call-exp)
     (sub-exp ("if" exp exp exp) if-exp)
     (sub-exp ("lambda" "(" (arbno identifier) ")" exp) proc-exp)
+    (sub-exp ("letrec" "(" (arbno "(" identifier "(" "lambda" "(" (arbno identifier) ")" exp ")") ")" ")" exp) letrec-exp) 
     (sub-exp ("let" "(" (arbno sublet-exp) ")" exp) let-exp)
     (sub-exp ("let*" "(" (arbno sublet-exp) ")" exp) let*-exp)
     (sublet-exp ("(" identifier exp ")") slet-exp)
@@ -167,9 +180,13 @@
       (prog-exp (exp)
          (value-of exp
                    (extend-env 'list (proc-val (prim-procedure 'list (lambda (lst env) (create-list lst env)) 1))
-                   (extend-env 'null? (proc-val (prim-procedure 'null (lambda (x) (cases list-type x
-                                                                                    (empty-list () (bool-val #t))
-                                                                                    (else (bool-val #f)))) 1))
+                   (extend-env 'null? (proc-val (prim-procedure 'null (lambda (x) ;(if (not (list-type? x)) (bool-val #f)
+                                                                        (cases expval x
+                                                                        (list-val (lst)
+                                                                             (cases list-type (expval->lst x)
+                                                                               (empty-list () (bool-val #t))
+                                                                               (else (bool-val #f))))
+                                                                        (else (bool-val #f)))) 1))
                    (extend-env 'cdr (proc-val (prim-procedure 'cdr (lambda (x) (cases list-type x
                                                                                  (cons-cell-type (cr cd) cd)
                                                                                  (else (eopl:error 'car "Not a valid cons-cell-type ~s" x))))1))
@@ -265,13 +282,19 @@
                  (value-of body (bind-args var val env)));add mapping function 
       (prim-procedure (name oper argnum)
                   (cond
-                  ((zero? argnum) (oper))
-                  ((and (eq? name 'null?) (eq? argnum 1)) (oper (value-of (car val))))
+                  ((zero? (number-of-vals val)) (oper))
+                  ((and (eq? name 'null) (and (eq? argnum 1) (eq? argnum (number-of-vals val)))) (oper (value-of (car val) env)))
                   ((eq? name 'list) (oper val env))
-                  ((eq? argnum 1) (oper (expval->lst (value-of (car val) env))))
-                  ((eq? argnum 2) (oper (value-of (car val) env) (value-of (car (cdr val)) env)))
-                  ((eq? name 'list) (oper val))
+                  ((and (eq? argnum 1) (eq? argnum (number-of-vals val))) (oper (expval->lst (value-of (car val) env))))
+                  ((and (eq? argnum 2) (eq? argnum (number-of-vals val))) (oper (value-of (car val) env) (value-of (car (cdr val)) env)))
                   (else (eopl:error 'argnum "Bad argument number ~s" argnum)))))))
+
+;find the number of vals
+(define number-of-vals
+  (lambda (vals)
+    (cond
+      ((null? vals) 0)
+      (else (+ 1 (number-of-vals (cdr vals)))))))
 
 ;binds arguments and the values being passed
 (define bind-args
@@ -318,12 +341,24 @@
       (let-exp (lstexp exp1)
         (value-of exp1 (sublet-iterator lstexp env env)) 
       )
+      ;case for letrec expressions
+      (letrec-exp (p-names b-vars proc-bodies letrec-body) ;list of procedure names, list of list of bound variables, list of procedure bodies, and the letrec body
+                  (value-of letrec-body (binding-letrec-expressions p-names b-vars proc-bodies env))) ;binding-letrec-expressions will be our new environment when we evaluate the letrec-body
       ;case for let* expressions
       (let*-exp (lstexp exp1)
                (value-of exp1 (sublet*-iterator lstexp env)))
       (else
        (eopl:error 'exp "Improper subexpression ~s" exp))
       )))
+
+;helper function for binding letrec stuff
+(define binding-letrec-expressions
+  (lambda (p-names b-vars proc-bodies env)
+    (cond
+      ((or (null? p-names) (null? b-vars) (null? proc-bodies)) env);end of all the lists (they should all have equal numbers to begin with
+      (else (binding-letrec-expressions (cdr p-names) (cdr b-vars) (cdr proc-bodies) (extend-env-rec (car p-names) (car b-vars) (car proc-bodies) env)))
+  )))
+
 ;helper function to go through the list of sublet expressions
 (define sublet-iterator
   (lambda (exp env-old env-new);exp is a list and env is the environment 

@@ -117,6 +117,10 @@
                          (check-equal? (run "(null? (cdr (cons 4 (emptylist))))") #t))
               (test-case "Null? that should be false"
                          (check-equal? (run "(null? (cons 4 (emptylist)))") #f))
+              (test-case "Null? for something that is not a list"
+                         (check-equal? (run "(null? 1)") #f))
+              (test-case "Null? for cons of two numbers"
+                        (check-equal? (run "(null? (cons 4 4))") #f))
               (test-case "Basic List test"
                          (check-equal? (run "(list (lambda (x) (add x 5)) (add 4 5) (mul 2 3))") '((lambda (x) (add x 5)) 9 6)))
               (test-case "append-item-simple"
@@ -131,6 +135,9 @@
                                (else(cons (car lat) (appenditem x (cdr lat)))))))) (let* ((a 1) (b (add a 1)) (c (add a 2)) (d (add a 3))) (appenditem 5 (list a b c d))))") '(1 2 3 4 5)))
               (test-case "facotorial"
                          (check-equal? (run "(letrec ((fact (lambda (x) (cond ((equal 0 x) 1) (else (mul x (fact (sub x 1)))))))) (fact 5))") 120))
+              (test-case "provided-test-case"
+                         (check-equal? (run "((car (car (cdr (list (lambda (x) (add x 1)) (cons (lambda (y) (mul y 2))
+                                 (lambda (z) (mod z 3))) )))) (let* ((x 5) (y (mul x 2)) (z (mul y 2))) (if (lesser y z) (div 100 y) (sub 100 x))))") 20))
               ))
               
               
