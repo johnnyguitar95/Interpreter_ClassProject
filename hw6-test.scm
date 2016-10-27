@@ -88,6 +88,8 @@
                          (check-equal? (run "(cons (add 4 5) (cons (mul 2 3) (cons (div 6 2) (emptylist))))") '(9 6 3)))
               (test-case "Lets with cons"
                          (check-equal? (run "(let ((x 5) (y 6) (z 7)) (cons x (cons y (cons z (emptylist)))))") '(5 6 7)))
+              (test-case "Can run cons - item + list"
+                         (check-equal? (run "(cons 2 (cons #t (cons 4 (emptylist))))") '(2 #t 4)))
               (test-case "Cons numbers"
                          (check-equal? (run "(cons 2 2)") (cons 2 2)))
               (test-case "Cons multiple numbers"
@@ -121,6 +123,10 @@
                          (check-equal? (run "(null? 1)") #f))
               (test-case "Null? for cons of two numbers"
                         (check-equal? (run "(null? (cons 4 4))") #f))
+              (test-case "Can run list - no items"
+                         (check-equal? (run "(list)") '()))
+              (test-case "Can run list - many items"
+                         (check-equal? (run "(list 2 #t 4)") '(2 #t 4)))
               (test-case "Basic List test"
                          (check-equal? (run "(list (lambda (x) (add x 5)) (add 4 5) (mul 2 3))") '((lambda (x) (add x 5)) 9 6)))
               (test-case "append-item-simple"
@@ -138,6 +144,16 @@
               (test-case "provided-test-case"
                          (check-equal? (run "((car (car (cdr (list (lambda (x) (add x 1)) (cons (lambda (y) (mul y 2))
                                  (lambda (z) (mod z 3))) )))) (let* ((x 5) (y (mul x 2)) (z (mul y 2))) (if (lesser y z) (div 100 y) (sub 100 x))))") 20))
+              (test-case "multiple function calls"
+                         (check-equal? (run "(letrec ((appenditem (lambda (x lat)
+                               (cond
+                               ((null? lat) (cons x lat))
+                               (else(cons (car lat) (appenditem x (cdr lat)))))))(fact (lambda (x) (cond ((equal 0 x) 1) (else (mul x (fact (sub x 1)))))))) (appenditem (fact 5) (list 1 2 3 4)))") '(1 2 3 4 120)))
+              (test-case "Can express letrec-exp"
+                         (check-equal? (run "(lambda () (letrec ((a (lambda (x) (if (equal 0 x) #t (a (sub x 1)))))) (a 1)))")
+                                       '(lambda () (letrec ((a (lambda (x) (if (equal 0 x) #t (a (sub x 1)))))) (a 1)))))
+              (test-case "Can express let*-exp"
+                         (check-equal? (run "(lambda () (let* ((a 0) (b a)) b))") '(lambda () (let* ((a 0) (b a)) b))))
               ))
               
               

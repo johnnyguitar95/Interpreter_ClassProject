@@ -77,7 +77,7 @@
     (sub-exp (exp (arbno exp)) call-exp)
     (sub-exp ("if" exp exp exp) if-exp)
     (sub-exp ("lambda" "(" (arbno identifier) ")" exp) proc-exp)
-    (sub-exp ("letrec" "(" (arbno "(" identifier "(" "lambda" "(" (arbno identifier) ")" exp ")") ")" ")" exp) letrec-exp) 
+    (sub-exp ("letrec" "(" (arbno "(" identifier "(" "lambda" "(" (arbno identifier) ")" exp ")" ")") ")" exp) letrec-exp) 
     (sub-exp ("let" "(" (arbno sublet-exp) ")" exp) let-exp)
     (sub-exp ("let*" "(" (arbno sublet-exp) ")" exp) let*-exp)
     (sublet-exp ("(" identifier exp ")") slet-exp)
@@ -140,8 +140,19 @@
               (list 'lambda var (unparse-a-body body)))
       (let-exp (listexp exp1)
               (list 'let (unparse-sublets listexp) (unparse-a-body exp1)))
+      (let*-exp (listexp exp1)
+              (list 'let* (unparse-sublets listexp) (unparse-a-body exp1)))
+      (letrec-exp (p-names b-vars bodies letrec-body)
+              (list 'letrec (unparse-letrec-exp p-names b-vars bodies) (unparse-a-body letrec-body)))
       (else (eopl:error 'sub-exp "Not a valid sub expression for unparsing ~s" subbody)))))
 
+(define unparse-letrec-exp
+  (lambda (p-names b-vars bodies)
+    (cond
+      ((null? b-vars) '())
+      ((cons (list (car p-names) (list 'lambda (car b-vars) (unparse-a-body (car bodies)))) (unparse-letrec-exp (cdr p-names) (cdr b-vars) (cdr bodies)))))))
+
+;unparses cond expressions
 (define unparse-conds-exps
   (lambda (lexp1 lexp2)
     (cond
@@ -282,7 +293,7 @@
                  (value-of body (bind-args var val env)));add mapping function 
       (prim-procedure (name oper argnum)
                   (cond
-                  ((zero? (number-of-vals val)) (oper))
+                  ((and (zero? (number-of-vals val)) (eq? name 'emptylist)) (oper))
                   ((and (eq? name 'null) (and (eq? argnum 1) (eq? argnum (number-of-vals val)))) (oper (value-of (car val) env)))
                   ((eq? name 'list) (oper val env))
                   ((and (eq? argnum 1) (eq? argnum (number-of-vals val))) (oper (expval->lst (value-of (car val) env))))
@@ -356,7 +367,7 @@
   (lambda (p-names b-vars proc-bodies env)
     (cond
       ((or (null? p-names) (null? b-vars) (null? proc-bodies)) env);end of all the lists (they should all have equal numbers to begin with
-      (else (binding-letrec-expressions (cdr p-names) (cdr b-vars) (cdr proc-bodies) (extend-env-rec (car p-names) (car b-vars) (car proc-bodies) env)))
+      (else  (extend-env-rec (car p-names) (car b-vars) (car proc-bodies) (binding-letrec-expressions (cdr p-names) (cdr b-vars) (cdr proc-bodies) env)))
   )))
 
 ;helper function to go through the list of sublet expressions
