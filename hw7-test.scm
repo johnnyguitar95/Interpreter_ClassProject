@@ -1,6 +1,6 @@
 #lang scheme/base
 
-(require (planet schematics/schemeunit:3) "hw6.scm")
+(require (planet schematics/schemeunit:3) "hw7.scm")
 (require (planet schematics/schemeunit:3/text-ui))
 
 ;John Halloran and Jakob Horner

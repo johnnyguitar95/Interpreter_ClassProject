@@ -1,6 +1,8 @@
 #lang eopl
 ;John Halloran and Jakob Horner
 ;This is necessary code ported from homework 2
+(require "store.scm")
+
 (define-datatype environment environment?
   (empty-env)
   (extend-env
@@ -67,8 +69,10 @@
   (number   (digit (arbno digit))  number)))
 ;This is the grammar specified in homework specs
 (define expression-grammar
-  '((a-program (exp) prog-exp)
-    
+  '((a-program (stmt) prog-exp)
+
+    (stmt ("var" identifier "=" exp ";") assign-stmt)
+    (stmt ("print" exp) print-stmt)
     (exp (number) const-exp)
     (exp (identifier) var-exp)
     (exp ("(" sub-exp ")") shell-exp)
@@ -89,7 +93,7 @@
 (sllgen:make-define-datatypes scanner-spec-lc expression-grammar)
 (define run
   (lambda (string)
-    (unparse (value-of-program (scan&parse string)))
+    (value-of-program (scan&parse string))
    ))
 
 (define unparse
@@ -187,9 +191,10 @@
 
 (define value-of-program
   (lambda (pgm)
+    (initialize-store!)
     (cases a-program pgm
       (prog-exp (exp)
-         (value-of exp
+         (value-of-stmt exp
                    (extend-env 'list (proc-val (prim-procedure 'list (lambda (lst env) (create-list lst env)) 1))
                    (extend-env 'null? (proc-val (prim-procedure 'null (lambda (x) ;(if (not (list-type? x)) (bool-val #f)
                                                                         (cases expval x
@@ -290,14 +295,14 @@
   (lambda (proc1 val env)
     (cases proc proc1
       (procedure (var body saved-env)
-                 (value-of body (bind-args var val env env)));add mapping function 
+                 (value-of-exp body (bind-args var val env env)));add mapping function 
       (prim-procedure (name oper argnum)
                   (cond
                   ((and (zero? (number-of-vals val)) (eq? name 'emptylist)) (oper))
-                  ((and (eq? name 'null) (and (eq? argnum 1) (eq? argnum (number-of-vals val)))) (oper (value-of (car val) env)))
+                  ((and (eq? name 'null) (and (eq? argnum 1) (eq? argnum (number-of-vals val)))) (oper (value-of-exp (car val) env)))
                   ((eq? name 'list) (oper val env))
-                  ((and (eq? argnum 1) (eq? argnum (number-of-vals val))) (oper (expval->lst (value-of (car val) env))))
-                  ((and (eq? argnum 2) (eq? argnum (number-of-vals val))) (oper (value-of (car val) env) (value-of (car (cdr val)) env)))
+                  ((and (eq? argnum 1) (eq? argnum (number-of-vals val))) (oper (expval->lst (value-of-exp (car val) env))))
+                  ((and (eq? argnum 2) (eq? argnum (number-of-vals val))) (oper (value-of-exp (car val) env) (value-of-exp (car (cdr val)) env)))
                   (else (eopl:error 'argnum "Bad argument number ~s" argnum)))))))
 
 ;find the number of vals
@@ -314,9 +319,18 @@
       ((null? var) env)
     (else
      ;(bind-args (cdr var) (cdr val) (extend-env (car var) (value-of (car val) outer-env) env) outer-env)))))
-     (bind-args (cdr var) (cdr val) (extend-env (car var) (value-of (car val) outer-env) env) env)))))
+     (bind-args (cdr var) (cdr val) (extend-env (car var) (value-of-exp (car val) outer-env) env) env)))))
 
-(define value-of
+(define value-of-stmt
+  (lambda (stm env)
+    (cases stmt stm
+      (print-stmt (exp)
+                  (write (unparse (value-of-exp exp env)))
+                  (newline))
+      (else
+       (eopl:error 'stm "Improper statement" stm)))))
+
+(define value-of-exp
  (lambda (ex env)
   (cases exp ex
     ;case for constant expressions
@@ -340,25 +354,25 @@
         (evaluate-conds list-exp1 list-exp2 else-exp env))
       ;case for call-exp
       (call-exp (rator rands)
-               (apply-procedure (expval->proc (value-of rator env)) rands env))
+               (apply-procedure (expval->proc (value-of-exp rator env)) rands env))
       ;case for if expressions
       (if-exp (bool exp1 exp2);named bool because its a supposed to be a bool, but grammatically be any expression
         (cond
-          ((expval->bool (value-of bool env)) (value-of exp1 env))
-          (else (value-of exp2 env))))
+          ((expval->bool (value-of-exp bool env)) (value-of-exp exp1 env))
+          (else (value-of-exp exp2 env))))
       ;case for lambda expressions
       (proc-exp (var body)
                 (proc-val (procedure var body env)))
       ;case for let expressions  
       (let-exp (lstexp exp1)
-        (value-of exp1 (sublet-iterator lstexp env env)) 
+        (value-of-exp exp1 (sublet-iterator lstexp env env)) 
       )
       ;case for letrec expressions
       (letrec-exp (p-names b-vars proc-bodies letrec-body) ;list of procedure names, list of list of bound variables, list of procedure bodies, and the letrec body
-                  (value-of letrec-body (binding-letrec-expressions p-names b-vars proc-bodies env))) ;binding-letrec-expressions will be our new environment when we evaluate the letrec-body
+                  (value-of-exp letrec-body (binding-letrec-expressions p-names b-vars proc-bodies env))) ;binding-letrec-expressions will be our new environment when we evaluate the letrec-body
       ;case for let* expressions
       (let*-exp (lstexp exp1)
-               (value-of exp1 (sublet*-iterator lstexp env)))
+               (value-of-exp exp1 (sublet*-iterator lstexp env)))
       (else
        (eopl:error 'exp "Improper subexpression ~s" exp))
       )))
@@ -382,15 +396,15 @@
 (define evaluate-conds
   (lambda (list-exp1 list-exp2 else-exp env)
     (cond
-      ((null? list-exp1) (value-of else-exp env))
-      ((expval->bool (value-of (car list-exp1) env)) (value-of (car list-exp2) env))
+      ((null? list-exp1) (value-of-exp else-exp env))
+      ((expval->bool (value-of-exp (car list-exp1) env)) (value-of-exp (car list-exp2) env))
       (else (evaluate-conds (cdr list-exp1) (cdr list-exp2) else-exp env)))))
 ;helper function for let expression
 (define value-of-subletexp
   (lambda (exp env-old env-new)
     (cases sublet-exp exp
       (slet-exp (id exp1)
-        (extend-env id (value-of exp1 env-old) env-new);returns environment
+        (extend-env id (value-of-exp exp1 env-old) env-new);returns environment
         )
       (else
        (eopl:error 'exp "Improper sublet expression ~s" exp))
@@ -411,7 +425,7 @@
   (lambda (rands env)
     (cond
       ((null? rands) env)
-      (else(rand-iterator (cdr rands) (value-of (car rands) env)))
+      (else(rand-iterator (cdr rands) (value-of-exp (car rands) env)))
       )))
 
 ;helper function for making lists
@@ -420,7 +434,7 @@
     (cond
       ((null? lst) (list-val (empty-list)))
       (else
-       (list-val (cons-cell-type (value-of (car lst) env) (create-list (cdr lst) env))))
+       (list-val (cons-cell-type (value-of-exp (car lst) env) (create-list (cdr lst) env))))
     )))
 
 ;helper function to go through the list of sublet* expressions
@@ -436,7 +450,7 @@
   (lambda (exp env)
     (cases sublet-exp exp
       (slet-exp (id exp1)
-        (extend-env id (value-of exp1 env) env);returns environment
+        (extend-env id (value-of-exp exp1 env) env);returns environment
         )
       (else
        (eopl:error 'exp "Improper sublet expression ~s" exp))

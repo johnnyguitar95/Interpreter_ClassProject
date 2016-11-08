@@ -91,7 +91,6 @@
   (lambda (string)
     (unparse (value-of-program (scan&parse string)))
    ))
-
 (define unparse
   (lambda (expv)
     (cases expval expv
@@ -111,7 +110,6 @@
                   (cons-cell-type (cr cd)
                             (cons (unparse cr) (unparse cd)))))      
       )))
-
 (define unparse-a-body
   (lambda (body)
     (cases exp body
@@ -126,7 +124,6 @@
          (unparse-subbool subbool))
       (else (eopl:error 'proc-exp "Not a valid body ~s" body))
       )))
-
 (define unparse-a-subbody
   (lambda (subbody)
     (cases sub-exp subbody
@@ -145,13 +142,11 @@
       (letrec-exp (p-names b-vars bodies letrec-body)
               (list 'letrec (unparse-letrec-exp p-names b-vars bodies) (unparse-a-body letrec-body)))
       (else (eopl:error 'sub-exp "Not a valid sub expression for unparsing ~s" subbody)))))
-
 (define unparse-letrec-exp
   (lambda (p-names b-vars bodies)
     (cond
       ((null? b-vars) '())
       ((cons (list (car p-names) (list 'lambda (car b-vars) (unparse-a-body (car bodies)))) (unparse-letrec-exp (cdr p-names) (cdr b-vars) (cdr bodies)))))))
-
 ;unparses cond expressions
 (define unparse-conds-exps
   (lambda (lexp1 lexp2)
@@ -159,14 +154,12 @@
       ((null? lexp1) '())
       (else
       (cons (list (unparse-a-body (car lexp1)) (unparse-a-body (car lexp2))) (unparse-conds-exps (cdr lexp1) (cdr lexp2)))))))
-
 (define unparse-sublets
   (lambda (sublets)
     (cond
       ((null? sublets) '())
     (else
      (cons (unparse-sublet-exp (car sublets)) (unparse-sublets (cdr sublets)))))))
-
 (define unparse-sublet-exp
   (lambda (explet)
     (cases sublet-exp explet
@@ -184,7 +177,6 @@
       (else
        (eopl:error 'subbool "Improper boolean ~s" subbool))
       )))
-
 (define value-of-program
   (lambda (pgm)
     (cases a-program pgm
@@ -222,7 +214,6 @@
       (else
        (eopl:error 'pgm "Improper program ~s" pgm))
       )))
-
 ;expval datatype
 (define-datatype expval expval?
   (num-val
@@ -234,14 +225,12 @@
   (list-val
    (lst list-type?))
   )
-
 ;Data structure for a cons cell for lists 
 (define-datatype list-type list-type?
   (empty-list)
   (cons-cell-type
    (cr expval?)
    (cd expval?)))
-
 ;Process data type
 (define-datatype proc proc?
   (procedure
@@ -253,14 +242,12 @@
    (oper procedure?)
    (argnum number?)
    ))
-
 ;expval to a number function
 (define expval->num
   (lambda (val)
     (cases expval val
       (num-val (num) num)
       (else (eopl:error 'num "Not a number ~s" val)))))
-
 ;expval to a boolean function
 (define expval->bool
   (lambda (val)
@@ -269,28 +256,24 @@
                (if (zero? num) #f #t))
       (bool-val (bool) bool)
       (else (eopl:error 'bool "Not a boolean ~s" val)))))
-
 ;expval to a procedure function
 (define expval->proc
   (lambda (proc)
     (cases expval proc
       (proc-val (proc) proc)
       (else (eopl:error 'proc "Not a proc ~s" proc)))))
-
 ;expval to a s-expression function
 (define expval->lst
   (lambda (list-exp)
     (cases expval list-exp
       (list-val (lst) lst)
       (else (eopl:error 'list-exp "Not an s-expression ~s" list-exp)))))
-
-
 ;applying a procedure
 (define apply-procedure
   (lambda (proc1 val env)
     (cases proc proc1
       (procedure (var body saved-env)
-                 (value-of body (bind-args var val env env)));add mapping function 
+                 (value-of body (bind-args var val env)));add mapping function 
       (prim-procedure (name oper argnum)
                   (cond
                   ((and (zero? (number-of-vals val)) (eq? name 'emptylist)) (oper))
@@ -299,23 +282,19 @@
                   ((and (eq? argnum 1) (eq? argnum (number-of-vals val))) (oper (expval->lst (value-of (car val) env))))
                   ((and (eq? argnum 2) (eq? argnum (number-of-vals val))) (oper (value-of (car val) env) (value-of (car (cdr val)) env)))
                   (else (eopl:error 'argnum "Bad argument number ~s" argnum)))))))
-
 ;find the number of vals
 (define number-of-vals
   (lambda (vals)
     (cond
       ((null? vals) 0)
       (else (+ 1 (number-of-vals (cdr vals)))))))
-
 ;binds arguments and the values being passed
 (define bind-args
-  (lambda (var val env outer-env)
+  (lambda (var val env)
     (cond
       ((null? var) env)
     (else
-     ;(bind-args (cdr var) (cdr val) (extend-env (car var) (value-of (car val) outer-env) env) outer-env)))))
-     (bind-args (cdr var) (cdr val) (extend-env (car var) (value-of (car val) outer-env) env) env)))))
-
+     (bind-args (cdr var) (cdr val) (extend-env (car var) (value-of (car val) env) env))))))
 (define value-of
  (lambda (ex env)
   (cases exp ex
@@ -362,7 +341,6 @@
       (else
        (eopl:error 'exp "Improper subexpression ~s" exp))
       )))
-
 ;helper function for binding letrec stuff
 (define binding-letrec-expressions
   (lambda (p-names b-vars proc-bodies env)
@@ -370,7 +348,6 @@
       ((or (null? p-names) (null? b-vars) (null? proc-bodies)) env);end of all the lists (they should all have equal numbers to begin with
       (else  (extend-env-rec (car p-names) (car b-vars) (car proc-bodies) (binding-letrec-expressions (cdr p-names) (cdr b-vars) (cdr proc-bodies) env)))
   )))
-
 ;helper function to go through the list of sublet expressions
 (define sublet-iterator
   (lambda (exp env-old env-new);exp is a list and env is the environment 
@@ -413,7 +390,6 @@
       ((null? rands) env)
       (else(rand-iterator (cdr rands) (value-of (car rands) env)))
       )))
-
 ;helper function for making lists
 (define create-list
   (lambda (lst env)
@@ -422,7 +398,6 @@
       (else
        (list-val (cons-cell-type (value-of (car lst) env) (create-list (cdr lst) env))))
     )))
-
 ;helper function to go through the list of sublet* expressions
 (define sublet*-iterator
   (lambda (exp env);exp is a list and env is the environment 
@@ -430,7 +405,6 @@
       ((null? exp) env)
       (else(sublet*-iterator (cdr exp) (value-of-sublet*exp (car exp) env)))
   )))
-
 ;helper function for let expression
 (define value-of-sublet*exp
   (lambda (exp env)
@@ -441,7 +415,5 @@
       (else
        (eopl:error 'exp "Improper sublet expression ~s" exp))
       )))
-
-
 (provide scan&parse run)
 ;TA-BOT:MAILTO john.p.halloran@marquette.edu jakob.horner@marquette.edu
