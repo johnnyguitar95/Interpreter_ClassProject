@@ -332,7 +332,7 @@
       ((null? var) env)
     (else
      ;(bind-args (cdr var) (cdr val) (extend-env (car var) (value-of (car val) outer-env) env) outer-env)))))
-     (bind-args (cdr var) (cdr val) (extend-env (car var) (value-of-exp (car val) outer-env) env) env)))))
+     (bind-args (cdr var) (cdr val) (extend-env (car var) (ref-val (newref (value-of-exp (car val) outer-env))) env) env)))))
 
 (define value-of-stmt
   (lambda (stm env)

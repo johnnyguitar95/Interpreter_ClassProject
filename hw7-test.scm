@@ -10,81 +10,6 @@
 
 (require "schemeunit-display.scm")
 
-(define scan&parse-tests
-  (test-suite "HW7: scan&parse tests"
-              (test-case "Can parse assignment statement"
-                         (check-equal? (scan&parse "x = 5") (a-program (assign-stmt 'x (num-exp 5)))))
-              (test-case "Can parse print statement"
-                         (check-equal? (scan&parse "print 5") (a-program (print-stmt (num-exp 5)))))
-              (test-case "Can parse compound statement with no statements"
-                         (check-equal? (scan&parse "{}") (a-program (compound-stmt '()))))
-              (test-case "Can parse compound statement with one statement"
-                         (check-equal? (scan&parse "{print 3}") (a-program (compound-stmt (list (print-stmt (num-exp 3)))))))
-              (test-case "Can parse compound statement with many statements"
-                         (check-equal? (scan&parse "{print 3; print 4; print 5}") (a-program (compound-stmt (list (print-stmt (num-exp 3)) (print-stmt (num-exp 4)) (print-stmt (num-exp 5)))))))
-              (test-case "Can parse if statement"
-                         (check-equal? (scan&parse "if #t then print 4 else print 5") (a-program (if-stmt (bool-exp "#t") (print-stmt (num-exp 4)) (print-stmt (num-exp 5))))))
-              (test-case "Can parse while statement"
-                         (check-equal? (scan&parse "while #t do print 5") (a-program (while-stmt (bool-exp "#t") (print-stmt (num-exp 5))))))
-              (test-case "Can parse block statement with no assignments"
-                         (check-equal? (scan&parse "var; print 5") (a-program (block-stmt '() '() (print-stmt (num-exp 5))))))
-              (test-case "Can parse block statement with one assignment"
-                         (check-equal? (scan&parse "var x = 5; print x") (a-program (block-stmt (list 'x) (list (num-exp 5)) (print-stmt (var-exp 'x))))))
-              (test-case "Can parse block statement with many assignments"
-                         (check-equal? (scan&parse "var x = 5, y = 6, z = 7; print y") (a-program (block-stmt (list 'x 'y 'z) (list (num-exp 5) (num-exp 6) (num-exp 7)) (print-stmt (var-exp 'y))))))
-
-              (test-case "Can parse number"
-                         (check-equal? (scan&parse "print 4") (a-program (print-stmt (num-exp '4)))))
-              (test-case "Can parse true"
-                         (check-equal? (scan&parse "print #t") (a-program (print-stmt (bool-exp "#t")))))
-              (test-case "Can parse false"
-                         (check-equal? (scan&parse "print #f") (a-program (print-stmt (bool-exp "#f")))))
-              (test-case "Can parse variable"
-                         (check-equal? (scan&parse "print a") (a-program (print-stmt (var-exp 'a)))))
-              
-              (test-case "Can parse if expression"
-                         (check-equal? (scan&parse "print (if #t a b)") (a-program (print-stmt (let-paren-exp (if-exp (bool-exp "#t") (var-exp 'a) (var-exp 'b)))))))
-              
-              (test-case "Can parse let expression with no bindings"
-                         (check-equal? (scan&parse "print (let () a)") (a-program (print-stmt (let-paren-exp (let-exp (list) (var-exp 'a)))))))
-              (test-case "Can parse let expression with one binding"
-                         (check-equal? (scan&parse "print (let ((a 1)) a)") (a-program (print-stmt (let-paren-exp (let-exp (list (let-bind-exp 'a (num-exp '1))) (var-exp 'a)))))))
-              (test-case "Can parse let expression with many bindings"
-                         (check-equal? (scan&parse "print (let ((a 1) (b 2)) a)") (a-program (print-stmt (let-paren-exp (let-exp (list (let-bind-exp 'a (num-exp '1)) (let-bind-exp 'b (num-exp '2))) (var-exp 'a)))))))
-              
-              (test-case "Can parse let* expression with no bindings"
-                         (check-equal? (scan&parse "print (let* () a)") (a-program (print-stmt (let-paren-exp (let*-exp (list) (var-exp 'a)))))))
-              (test-case "Can parse let* expression with one binding"
-                         (check-equal? (scan&parse "print (let* ((a 1)) a)") (a-program (print-stmt (let-paren-exp (let*-exp (list (let-bind-exp 'a (num-exp '1))) (var-exp 'a)))))))
-              (test-case "Can parse let* expression with many bindings"
-                         (check-equal? (scan&parse "print (let* ((a 1) (b a)) b)") (a-program (print-stmt (let-paren-exp (let*-exp (list (let-bind-exp 'a (num-exp '1)) (let-bind-exp 'b (var-exp 'a))) (var-exp 'b)))))))
-              
-              (test-case "Can parse letrec expression with no bindings"
-                         (check-equal? (scan&parse "print (letrec () a)") (a-program (print-stmt (let-paren-exp (letrec-exp (list) (list) (list) (var-exp 'a)))))))
-              (test-case "Can parse letrec expression with one binding"
-                         (check-equal? (scan&parse "print (letrec ((a (lambda (x y) x))) a)") (a-program (print-stmt (let-paren-exp (letrec-exp '(a) '((x y)) (list (var-exp 'x)) (var-exp 'a)))))))
-              (test-case "Can parse letrec expression with many bindings"
-                         (check-equal? (scan&parse "print (letrec ((a (lambda (x y) x)) (b (lambda () 0))) b)") (a-program (print-stmt (let-paren-exp (letrec-exp '(a b) '((x y) ()) (list (var-exp 'x) (num-exp 0)) (var-exp 'b)))))))
-              
-              (test-case "Can parse cond expression with no conditional cases"
-                         (check-equal? (scan&parse "print (cond (else 1))") (a-program (print-stmt (let-paren-exp (cond-exp '() '() (num-exp '1)))))))
-              (test-case "Can parse cond expression with some conditional cases"
-                         (check-equal? (scan&parse "print (cond (#f 1) (#t 2) (else 3))") (a-program (print-stmt (let-paren-exp (cond-exp (list (bool-exp "#f") (bool-exp "#t")) (list (num-exp '1) (num-exp '2)) (num-exp '3)))))))
-              
-              (test-case "Can parse lambda expression with no parameters"
-                         (check-equal? (scan&parse "print (lambda () 1)") (a-program (print-stmt (let-paren-exp (proc-exp '() (num-exp '1)))))))
-              (test-case "Can parse lambda expression with some parameters"
-                         (check-equal? (scan&parse "print (lambda (x y) x)") (a-program (print-stmt (let-paren-exp (proc-exp '(x y) (var-exp 'x)))))))
-              
-              (test-case "Can parse application expression with no parameters"
-                         (check-equal? (scan&parse "print ((lambda () 1))") (a-program (print-stmt (let-paren-exp (call-exp (let-paren-exp (proc-exp '() (num-exp '1))) '()))))))
-              (test-case "Can parse application expression with some parameters"
-                         (check-equal? (scan&parse "print ((lambda (x y) x) 1 2)") (a-program (print-stmt (let-paren-exp (call-exp (let-paren-exp (proc-exp '(x y) (var-exp 'x))) (list (num-exp 1) (num-exp 2))))))))
-              (test-case "Can parse applictaion expression with named operand"
-                         (check-equal? (scan&parse "print (add 1 2)") (a-program (print-stmt (let-paren-exp (call-exp (var-exp 'add) (list (num-exp 1) (num-exp 2))))))))
-              )
-  )
-
 (define combine-string-lines
   (lambda (lines)
     (if (null? lines) ""
@@ -362,5 +287,5 @@
               ))
 
 
-(run-tests scan&parse-tests)
+
 (run-tests run-func-tests)
