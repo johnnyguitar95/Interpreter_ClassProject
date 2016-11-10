@@ -31,7 +31,7 @@
           )
           (extend-env-rec (p-name b-var p-body saved-env)
                       (if (eq? search-var p-name)
-                          (proc-val (procedure b-var p-body env))
+                          (ref-val (newref (proc-val (procedure b-var p-body saved-env))))
                           (apply-env saved-env search-var)))
         )
         (report-invalid-env env)
@@ -74,6 +74,8 @@
     (stmt (identifier "=" exp) assign-stmt)
     (stmt ("print" exp) print-stmt)
     (stmt ("{" (separated-list stmt ";") "}") compound-stmt)
+    (stmt ("if" exp "then" stmt "else" stmt) if-stmt)
+    (stmt ("while" exp "do" stmt) while-stmt)
     (stmt ("var" (separated-list identifier "=" exp ",") ";" stmt) block-stmt)
     (exp (number) const-exp)
     (exp (identifier) var-exp)
@@ -96,6 +98,7 @@
 (define run
   (lambda (string)
     (value-of-program (scan&parse string))
+    'run-complete
    ))
 
 (define unparse
@@ -276,8 +279,8 @@
 (define expval->bool
   (lambda (val)
     (cases expval val
-      (num-val (num)
-               (if (zero? num) #f #t))
+      ;(num-val (num)
+      ;         (if (zero? num) #f #t)) - NOW PART OF OUR IMPERATIVE LANGUAGE
       (bool-val (bool) bool)
       (else (eopl:error 'bool "Not a boolean ~s" val)))))
 
@@ -342,10 +345,14 @@
       (print-stmt (exp)
                   (write (unparse (value-of-exp exp env)))
                   (newline))
+      (if-stmt (exp stmt1 stmt2)
+               (if (expval->bool (value-of-exp exp env)) (value-of-stmt stmt1 env) (value-of-stmt stmt2 env)))
+      (while-stmt (exp stmt1)
+                  (while-helper exp stmt1 env))  
       (compound-stmt (stmts)
                      (for-each (lambda (x) (value-of-stmt x env)) stmts))
       (block-stmt (vars init-exps body-stmt)
-                  (value-of-stmt body-stmt (assign-new-vars vars init-exps env)))
+                  (value-of-stmt body-stmt (assign-new-vars vars init-exps env env)))
       (else
        (eopl:error 'stm "Improper statement ~s" stm)))))
 
@@ -396,13 +403,22 @@
        (eopl:error 'exp "Improper subexpression ~s" exp))
       )))
 
+;helper function for imperative while loop
+(define while-helper
+  (lambda (exp stmt env)
+    (if (expval->bool (value-of-exp exp env))
+        (begin (value-of-stmt stmt env) (while-helper exp stmt env))
+        env
+)))
+    
+
 ;helper function for new assignments
 (define assign-new-vars
-  (lambda (vars exps env)
+  (lambda (vars exps env old-env)
     (cond
       ((null? vars) env)
       (else
-       (assign-new-vars (cdr vars) (cdr exps) (extend-env (car vars) (ref-val (newref (value-of-exp (car exps) env))) env)))
+       (assign-new-vars (cdr vars) (cdr exps) (extend-env (car vars) (ref-val (newref (value-of-exp (car exps) old-env))) env) old-env))
       ))) 
 
 ;helper function for binding letrec stuff
@@ -418,7 +434,7 @@
   (lambda (exp env-old env-new);exp is a list and env is the environment 
     (cond
       ((null? exp) env-new)
-      (else(sublet-iterator (cdr exp) env-old (value-of-subletexp (car exp) env-old env-new)))
+      (else(sublet-iterator (cdr exp) env-new (value-of-subletexp (car exp) env-old env-new)))
   )))
 ;helper function for cond statements
 (define evaluate-conds
@@ -427,12 +443,13 @@
       ((null? list-exp1) (value-of-exp else-exp env))
       ((expval->bool (value-of-exp (car list-exp1) env)) (value-of-exp (car list-exp2) env))
       (else (evaluate-conds (cdr list-exp1) (cdr list-exp2) else-exp env)))))
+
 ;helper function for let expression
 (define value-of-subletexp
   (lambda (exp env-old env-new)
     (cases sublet-exp exp
       (slet-exp (id exp1)
-        (extend-env id (value-of-exp exp1 env-old) env-new);returns environment
+        (extend-env id (ref-val (newref (value-of-exp exp1 env-old))) env-new);returns environment
         )
       (else
        (eopl:error 'exp "Improper sublet expression ~s" exp))
@@ -478,7 +495,7 @@
   (lambda (exp env)
     (cases sublet-exp exp
       (slet-exp (id exp1)
-        (extend-env id (value-of-exp exp1 env) env);returns environment
+        (extend-env id (ref-val (newref (value-of-exp exp1 env))) env);returns environment
         )
       (else
        (eopl:error 'exp "Improper sublet expression ~s" exp))
