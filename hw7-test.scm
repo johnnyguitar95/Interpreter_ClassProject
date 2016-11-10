@@ -1,164 +1,366 @@
 #lang scheme/base
 
+;TA-BOT:MAILTO nathan.arpin@marquette.edu charles.morley@marquette.edu
+;Nathan Arpin and Charlie Morley
+;These test cases are licensed only under terms discussed with either of the authors and terms that appear in this document.
+;No republishing or redistribution of these test cases may be done by the licensed recipients of these test cases.
+
 (require (planet schematics/schemeunit:3) "hw7.scm")
 (require (planet schematics/schemeunit:3/text-ui))
 
-;John Halloran and Jakob Horner
-;Some code stylings from Jim Reily used
+(require "schemeunit-display.scm")
 
-(define demo-tests-hw4
-  (test-suite "Homework 4 Tests"
-              (test-case "run-num"
-                         (check-equal? (run "5") 5))
-              (test-case "basic-true"
-                         (check-equal? (run "#t") #t))
-              (test-case "basic-false"
-                         (check-equal? (run "#f") #f))
-              (test-case "run-add-nums"
-                         (check-equal? (run "(add 5 6)") 11))
-              (test-case "run-sub-nums"
-                         (check-equal? (run "(sub 3 1)") 2))
-              (test-case "run-mult-nums"
-                         (check-equal? (run "(mul 2 3)") 6))
-              (test-case "run-div-nums"
-                         (check-equal? (run "(div 4 2)") 2))
-              (test-case "run-nested-arithmetic"
-                         (check-equal? (run "(add (mul 2 (div 4 2)) (sub 4 (mod 4 4)))") 8))
-              (test-case "complicated-arithmetic-with-let"
-                         (check-equal? (run "(let ((x 5) (y 6) (z 9) (a (add 5 3))) (mul (mod (add y z) a) (add (mul x a) (mul y z))))") 658))
-              (test-case "run-if-statement"
-                         (check-equal? (run "(if (lesser 2 3) 6 5)") 6))
-              (test-case "test-xor"
-                         (check-equal? (run "(if (xor (greater 6 5) (lesser 6 5)) 0 1)") 0))
-              (test-case "complicated-boolean-test"
-                         (check-equal? (run "(let ((x 2) (y 3) (z 4)) (if (and (or (greater 10 z) (lesser 5 z)) (greater (add x y) z)) (add x (add y z)) (mul x (mul y z))))") 9))
-              (test-case "run-complicated-expression"
-                         (check-equal? (run "(let ((x 5) (y 6)) (if (and (greater x 10) (equal y 6)) 20 40))") 40))
-              (test-case "let-inside-let-inside-let"
-                         (check-equal? (run "(let ((x (let ((a 5) (b 6)) (add a (let ((k 7)) (add k b))))) (y 5)) (mul x y))") 90))))
-(define demo-tests-hw5
-  (test-suite "Homework 5 Tests"
-              (test-case "simple-cond"
-                         (check-equal? (run "(cond (#t 10) (else 20))") 10))
-              (test-case "looks-wrong-but-grammatically-correct-cond"
-                         (check-equal? (run "(cond (#t 10) (#t 30) (#t 50) (else 20))") 10))
-              (test-case "a-bit-complicated-cond"
-                         (check-equal? (run "(let ((x 5) (y 7)) (cond ((greater x 6) y) ((lesser y 3) x) (else 100)))") 100))
-              (test-case "tricky-cond2"
-                         (check-equal? (run "(let ((x 5) (y 7)) (cond ((greater x 6) y) ((lesser y 9) x) (else 100)))") 5))
-              (test-case "tricky-cond3"
-                         (check-equal? (run "(let ((x 5) (y 8) (z 2)) (cond ((and (greater (add x y) (add y z)) (lesser y z)) 100) ((or #f (equal x y)) 200) (else 300)))") 300))
-              (test-case "tricky-cond4"
-                         (check-equal? (run "(let ((x 5) (y 8) (z 2)) (cond ((and (greater (add x y) (add y z)) (lesser y z)) 100) ((or #f (equal x x)) 200) (else 300)))") 200))
+(define scan&parse-tests
+  (test-suite "HW7: scan&parse tests"
+              (test-case "Can parse assignment statement"
+                         (check-equal? (scan&parse "x = 5") (a-program (assign-stmt 'x (num-exp 5)))))
+              (test-case "Can parse print statement"
+                         (check-equal? (scan&parse "print 5") (a-program (print-stmt (num-exp 5)))))
+              (test-case "Can parse compound statement with no statements"
+                         (check-equal? (scan&parse "{}") (a-program (compound-stmt '()))))
+              (test-case "Can parse compound statement with one statement"
+                         (check-equal? (scan&parse "{print 3}") (a-program (compound-stmt (list (print-stmt (num-exp 3)))))))
+              (test-case "Can parse compound statement with many statements"
+                         (check-equal? (scan&parse "{print 3; print 4; print 5}") (a-program (compound-stmt (list (print-stmt (num-exp 3)) (print-stmt (num-exp 4)) (print-stmt (num-exp 5)))))))
+              (test-case "Can parse if statement"
+                         (check-equal? (scan&parse "if #t then print 4 else print 5") (a-program (if-stmt (bool-exp "#t") (print-stmt (num-exp 4)) (print-stmt (num-exp 5))))))
+              (test-case "Can parse while statement"
+                         (check-equal? (scan&parse "while #t do print 5") (a-program (while-stmt (bool-exp "#t") (print-stmt (num-exp 5))))))
+              (test-case "Can parse block statement with no assignments"
+                         (check-equal? (scan&parse "var; print 5") (a-program (block-stmt '() '() (print-stmt (num-exp 5))))))
+              (test-case "Can parse block statement with one assignment"
+                         (check-equal? (scan&parse "var x = 5; print x") (a-program (block-stmt (list 'x) (list (num-exp 5)) (print-stmt (var-exp 'x))))))
+              (test-case "Can parse block statement with many assignments"
+                         (check-equal? (scan&parse "var x = 5, y = 6, z = 7; print y") (a-program (block-stmt (list 'x 'y 'z) (list (num-exp 5) (num-exp 6) (num-exp 7)) (print-stmt (var-exp 'y))))))
+
+              (test-case "Can parse number"
+                         (check-equal? (scan&parse "print 4") (a-program (print-stmt (num-exp '4)))))
+              (test-case "Can parse true"
+                         (check-equal? (scan&parse "print #t") (a-program (print-stmt (bool-exp "#t")))))
+              (test-case "Can parse false"
+                         (check-equal? (scan&parse "print #f") (a-program (print-stmt (bool-exp "#f")))))
+              (test-case "Can parse variable"
+                         (check-equal? (scan&parse "print a") (a-program (print-stmt (var-exp 'a)))))
+              
+              (test-case "Can parse if expression"
+                         (check-equal? (scan&parse "print (if #t a b)") (a-program (print-stmt (let-paren-exp (if-exp (bool-exp "#t") (var-exp 'a) (var-exp 'b)))))))
+              
+              (test-case "Can parse let expression with no bindings"
+                         (check-equal? (scan&parse "print (let () a)") (a-program (print-stmt (let-paren-exp (let-exp (list) (var-exp 'a)))))))
+              (test-case "Can parse let expression with one binding"
+                         (check-equal? (scan&parse "print (let ((a 1)) a)") (a-program (print-stmt (let-paren-exp (let-exp (list (let-bind-exp 'a (num-exp '1))) (var-exp 'a)))))))
+              (test-case "Can parse let expression with many bindings"
+                         (check-equal? (scan&parse "print (let ((a 1) (b 2)) a)") (a-program (print-stmt (let-paren-exp (let-exp (list (let-bind-exp 'a (num-exp '1)) (let-bind-exp 'b (num-exp '2))) (var-exp 'a)))))))
+              
+              (test-case "Can parse let* expression with no bindings"
+                         (check-equal? (scan&parse "print (let* () a)") (a-program (print-stmt (let-paren-exp (let*-exp (list) (var-exp 'a)))))))
+              (test-case "Can parse let* expression with one binding"
+                         (check-equal? (scan&parse "print (let* ((a 1)) a)") (a-program (print-stmt (let-paren-exp (let*-exp (list (let-bind-exp 'a (num-exp '1))) (var-exp 'a)))))))
+              (test-case "Can parse let* expression with many bindings"
+                         (check-equal? (scan&parse "print (let* ((a 1) (b a)) b)") (a-program (print-stmt (let-paren-exp (let*-exp (list (let-bind-exp 'a (num-exp '1)) (let-bind-exp 'b (var-exp 'a))) (var-exp 'b)))))))
+              
+              (test-case "Can parse letrec expression with no bindings"
+                         (check-equal? (scan&parse "print (letrec () a)") (a-program (print-stmt (let-paren-exp (letrec-exp (list) (list) (list) (var-exp 'a)))))))
+              (test-case "Can parse letrec expression with one binding"
+                         (check-equal? (scan&parse "print (letrec ((a (lambda (x y) x))) a)") (a-program (print-stmt (let-paren-exp (letrec-exp '(a) '((x y)) (list (var-exp 'x)) (var-exp 'a)))))))
+              (test-case "Can parse letrec expression with many bindings"
+                         (check-equal? (scan&parse "print (letrec ((a (lambda (x y) x)) (b (lambda () 0))) b)") (a-program (print-stmt (let-paren-exp (letrec-exp '(a b) '((x y) ()) (list (var-exp 'x) (num-exp 0)) (var-exp 'b)))))))
+              
+              (test-case "Can parse cond expression with no conditional cases"
+                         (check-equal? (scan&parse "print (cond (else 1))") (a-program (print-stmt (let-paren-exp (cond-exp '() '() (num-exp '1)))))))
+              (test-case "Can parse cond expression with some conditional cases"
+                         (check-equal? (scan&parse "print (cond (#f 1) (#t 2) (else 3))") (a-program (print-stmt (let-paren-exp (cond-exp (list (bool-exp "#f") (bool-exp "#t")) (list (num-exp '1) (num-exp '2)) (num-exp '3)))))))
+              
+              (test-case "Can parse lambda expression with no parameters"
+                         (check-equal? (scan&parse "print (lambda () 1)") (a-program (print-stmt (let-paren-exp (proc-exp '() (num-exp '1)))))))
+              (test-case "Can parse lambda expression with some parameters"
+                         (check-equal? (scan&parse "print (lambda (x y) x)") (a-program (print-stmt (let-paren-exp (proc-exp '(x y) (var-exp 'x)))))))
+              
+              (test-case "Can parse application expression with no parameters"
+                         (check-equal? (scan&parse "print ((lambda () 1))") (a-program (print-stmt (let-paren-exp (call-exp (let-paren-exp (proc-exp '() (num-exp '1))) '()))))))
+              (test-case "Can parse application expression with some parameters"
+                         (check-equal? (scan&parse "print ((lambda (x y) x) 1 2)") (a-program (print-stmt (let-paren-exp (call-exp (let-paren-exp (proc-exp '(x y) (var-exp 'x))) (list (num-exp 1) (num-exp 2))))))))
+              (test-case "Can parse applictaion expression with named operand"
+                         (check-equal? (scan&parse "print (add 1 2)") (a-program (print-stmt (let-paren-exp (call-exp (var-exp 'add) (list (num-exp 1) (num-exp 2))))))))
+              )
+  )
+
+(define combine-string-lines
+  (lambda (lines)
+    (if (null? lines) ""
+        (string-append (car lines) "\n" (combine-string-lines (cdr lines))))
+    )
+  )
+
+;takes in the mu-concrete-syntax to run, followed by the list of output lines
+;e.g., if running "{print 4; print 5}" and expecting "4\n5\n" back, type (check-program-output-equal? "{print 4; print 5}" "4" "5")
+(define check-program-output-equal?
+  (lambda params
+    (define program-input (car params))
+    (define expected-output-lines (cdr params))
+    (check-displayed-and-equal?
+     (lambda () (run program-input))
+     (combine-string-lines expected-output-lines)
+     'run-complete)
+    )
+  )
+
+;takes in the mu-concrete-syntax to run, and runs the "check-exn" assertion on it
+(define check-exception?
+  (lambda (program-input)
+    (check-exn exn? (lambda () (run program-input)))
+    )
+  )
+
+(define run-func-tests
+  (test-suite "HW7: run tests"
+              (test-case "Can run assignment statement - trivial"
+                         (check-program-output-equal? "var x = 4; x = 5"))
+              (test-case "Can run assignment statement - nontrivial"
+                         (check-program-output-equal? "var x = 4; {x = 5; print x}" "5"))
+              (test-case "Assignment statement throws exception if not previously bound - trivial"
+                         (check-exception? "var y = 4; x = 5"))
+              (test-case "Assignment statement throws exception if not previously bound - nontrivial"
+                         (check-exception? "var y = 4; {x = 5; print x}"))
+              (test-case "Can run print statement"
+                         (check-program-output-equal? "print 5" "5"))
+              (test-case "Can run compound statement with no statements"
+                         (check-program-output-equal? "{}"))
+              (test-case "Can run compound statement with one statement"
+                         (check-program-output-equal? "{print 4}" "4"))
+              (test-case "Can run compound statement with many statements"
+                         (check-program-output-equal? "{print 4; print 5; print 6}" "4" "5" "6"))
+              (test-case "Can run if statement - true condition"
+                         (check-program-output-equal? "if (greater 3 2) then print 4 else print 5" "4"))
+              (test-case "Can run if statement - false condition"
+                         (check-program-output-equal? "if (greater 2 3) then print 4 else print 5" "5"))
+              (test-case "Can run while statement with false condition"
+                         (check-program-output-equal? "while #f do print 5"))
+              (test-case "Can run while statement which changes condition"
+                         (check-program-output-equal? "var x = 3; while (greater x 0) do {print x; x = (sub x 1)}" "3" "2" "1"))
+              (test-case "Can run block statement with one assignment - basic bindings"
+                         (check-program-output-equal? "var x = 3; print x" "3"))
+              (test-case "Can run block statement with many assignments - basic bindings"
+                         (check-program-output-equal? "var x = 3, y = 4, z = 5; {print z; print x; print y}" "5" "3" "4"))
+              (test-case "Can run block statement for bound bindings"
+                         (check-program-output-equal? "var x = 3; var x = 4; print x" "4"))
+              (test-case "Block statement throws exception for trying to let* (feedback bindings)"
+                         (check-exception? "var x = 3, y = x; print 1"))
+              
+              (test-case "Can express number"
+                         (check-program-output-equal? "print 0" "0"))
+              (test-case "Can express true"
+                         (check-program-output-equal? "print #t" "#t"))
+              (test-case "Can express false"
+                         (check-program-output-equal? "print #f" "#f"))
+              (test-case "Throws exception for trying to express free-var"
+                         (check-exception? "print x"))
+              
+              (test-case "Can run if-then"
+                         (check-program-output-equal? "print (if #t 1 2)" "1"))
+              (test-case "Can run if-else"
+                         (check-program-output-equal? "print (if #f 1 2)" "2"))
+              (test-case "Can run if with sub-expressions"
+                         (check-program-output-equal? "print (if (and (lesser 2 4) (lesser 4 2)) 1 (add 1 1))" "2"))
+              (test-case "If with number as condition throws exception"
+                         (check-exception? "print (if 5 1 2)"))
+              
+              (test-case "Can run let for basic bindings"
+                         (check-program-output-equal? "print (let ((x 4)) (add x 1))" "5"))
+              (test-case "Can run let for bound bindings"
+                         (check-program-output-equal? "print (let ((x 4)) (let ((y x)) y))" "4"))
+              (test-case "Let throws exception for trying to let* (feedback bindings)"
+                         (check-exception? "print (let ((x 4) (y x)) 1)"))
+              (test-case "Let throws exception for trying to letrec (recursive bindings)"
+                         (check-exception? "print (let ((e (lambda (x) (if (equal 0 x) #t (e (sub 1 x)))))) (e 1))"))
+              (test-case "Let closes lambda binding with outer environment"
+                         (check-program-output-equal? "print (let ((x 5)) (let ((x 4) (y (lambda (z) (add x z)))) (y 3)))" "8"))
+              (test-case "Let evaluates value of binding"
+                         (check-program-output-equal? "print (let ((x (add 1 2))) (add x 1))" "4"))
+              
+              (test-case "Can run let* for basic bindings"
+                         (check-program-output-equal? "print (let* ((x 4)) (add x 1))" "5"))
+              (test-case "Can run let* for bound bindings"
+                         (check-program-output-equal? "print (let* ((x 4)) (let* ((y x)) y))" "4"))
+              (test-case "Can run let* for feedback bindings"
+                         (check-program-output-equal? "print (let* ((x 4) (y x)) y)" "4"))
+              (test-case "Let* throws exception for trying to letrec (recursive bindings)"
+                         (check-exception? "print (let* ((e (lambda (x) (if (equal 0 x) #t (e (sub 1 x)))))) (e 1))"))
+              (test-case "Let* closes lambda binding with in-progress environment"
+                         (check-program-output-equal? "print (let* ((x 5)) (let* ((x 4) (y (lambda (z) (add x z)))) (y 3)))" "7"))
+              (test-case "Let* evaluates value of binding"
+                         (check-program-output-equal? "print (let* ((x (add 1 2))) (add x 1))" "4"))
+              
+              (test-case "Can run letrec for basic lambda bindings"
+                         (check-program-output-equal? "print (letrec ((e (lambda (x) (add 1 x)))) (e 10))" "11"))
+              (test-case "Can run letrec for bound lambda bindings"
+                         (check-program-output-equal? "print (letrec ((e (lambda () 5))) (letrec ((f (lambda () e))) ((f))))" "5"))
+              (test-case "Can run letrec for feedback bindings"
+                         (check-program-output-equal? "print (letrec ((e (lambda () 5)) (f (lambda () e))) ((f)))" "5"))
+              (test-case "Can run letrec for recursive bindings"
+                         (check-program-output-equal? "print (letrec ((e (lambda (x) (if (equal 0 x) #t (e (sub x 1)))))) (e 3))" "#t"))
+              (test-case "Can run cond-else-only"
+                         (check-program-output-equal? "print (cond (else 4))" "4"))
+              (test-case "Can run cond-true-conditional"
+                         (check-program-output-equal? "print (cond ((and #t #f) 1) ((and #t #t) 2) (else 3))" "2"))
+              (test-case "Can run cond-false-conditional"
+                         (check-program-output-equal? "print (cond ((and #t #f) 1) ((or #f #f) 2) (else 3))" "3"))
+              
               (test-case "Can express lambda"
-                         (check-equal? (run "(lambda (x) x)") '(lambda (x) x)))
-              (test-case "Can express lambda with an expression for a body"
-                         (check-equal? (run "(lambda (x y) (add x y))") '(lambda (x y) (add x y))))
+                         (check-program-output-equal? "print (lambda () 0)" "(lambda () 0)"))
               (test-case "Can express lambda with outer environment"
-                         (check-equal? (run "((lambda (y) (lambda (z) y)) 1)") '(lambda (z) y)))
-              (test-case "Can run application"
-                         (check-equal? (run "((lambda (x y) y) 1 2)") 2))
-              (test-case "Can run assignment5-supplied test case 1"
-                         (check-equal? (run "((lambda (x y) (add x y)) 10 3)") 13))
-              (test-case "Can run assignment5-supplied test case 2"
-                         (check-equal? (run "(cond (#t 10) (else 20))") 10))
-              (test-case "Can run assignment5-supplied test case 3"
-                         (check-equal? (run "((lambda (x) (cond ((lesser x 0) (sub 0 x)) (else x))) 10)") 10))
-              (test-case "Can run assignment5-supplied test case 4"
-                         (check-equal? (run "((lambda (x) (cond ((lesser x 0) (sub 0 x)) (else x))) (sub 0 10))") 10))
-              (test-case "Weird Let Statement"
-                         (check-equal? (run "(let ((x 4)) ((lambda (x y) y) 5 (add x 10)))") 14))
-              (test-case "Currying test case"
-                         (check-equal? (run "(((lambda (x) (lambda (y) (add x y))) 5) 10)") 15))
-              (test-case "Harder Currying test case"
-                         (check-equal? (run "((lambda (y z) ((lambda (x) (let ((a 6)) (mul (add y x) (add a z)))) 3)) 4 5)") 77))
-              (test-case "Difficult lambda case 1"
-                         (check-equal? (run "((lambda (x y z) (cond ((greater x y) (add 5 z)) ((lesser x y) (sub z 5)) (else z))) (let ((a 5)(b 7)(c 2)) (add (mul a b) (mul b c))) (div 16 4) 19)") 24))
-              (test-case "Can express lambda with an unparsed body of all types of expressions"
-                          (check-equal? (run "(lambda () (let ((a 0)) (let ((b a) (c (if #t 0 1)) (d (cond (#t 1) (else 4))) (e (lambda (x) x)) (f ((lambda (x) x) 1)) (g (add x 1))) a)))")
-                           '(lambda () (let ((a 0)) (let ((b a) (c (if #t 0 1)) (d (cond (#t 1) (else 4))) (e (lambda (x) x)) (f ((lambda (x) x) 1)) (g (add x 1))) a)))))   ))
+                         (check-program-output-equal? "print ((lambda (y) (lambda (z) y)) 1)" "(lambda (z) y)")) ;(lambda (z) y) is closed with the environment [y=1], but never applied
 
-(define demo-tests-hw6
-  (test-suite "Homework 6 Tests"
-              (test-case "Print emptylist"
-                         (check-equal? (run "(emptylist)") '()))
-              (test-case "Simple Cons 1"
-                         (check-equal? (run "(cons 3 (emptylist))") '(3)))
-              (test-case "Simple Cons 2"
-                         (check-equal? (run "(cons 1 (cons 2 (cons 3 (cons 4 (emptylist)))))") '(1 2 3 4)))
-              (test-case "Little more complicated cons"
-                         (check-equal? (run "(cons (add 4 5) (cons (mul 2 3) (cons (div 6 2) (emptylist))))") '(9 6 3)))
-              (test-case "Lets with cons"
-                         (check-equal? (run "(let ((x 5) (y 6) (z 7)) (cons x (cons y (cons z (emptylist)))))") '(5 6 7)))
+              (test-case "Can run application"
+                         (check-program-output-equal? "print ((lambda (x y) y) 1 2)" "2"))
+              (test-case "Can run application with currying"
+                         (check-program-output-equal? "print (((lambda (x) (lambda (y) (add x y))) 1) 2)" "3"))
+              (test-case "Can run application indirectly through lambda"
+                         (check-program-output-equal? "print ((lambda (op) (op 3 2)) sub)" "1"))
+              (test-case "Can run application indirectly through let"
+                         (check-program-output-equal? "print (let ((x (lambda (z) z))) (x 3))" "3"))
+              (test-case "Can run application indirectly through let*"
+                         (check-program-output-equal? "print (let* ((x (lambda (z) z))) (x 3))" "3"))
+              ;"Can run application indirectly through letrec" already tested by "Can run letrec for basic lambda bindings"
+              (test-case "Application closes operands with outer environment"
+                         (check-program-output-equal? "print (let ((x 4)) ((lambda (x y) y) 5 (add x 10)))" "14"))
+              
+              (test-case "Can run add"
+                         (check-program-output-equal? "print (add 1 2)" "3"))
+              (test-case "Can run variadic add"
+                         (check-program-output-equal? "print (add 1 2 3 4 5)" "15"))
+              (test-case "Can run sub"
+                         (check-program-output-equal? "print (sub 2 1)" "1"))
+              (test-case "Can run mul"
+                         (check-program-output-equal? "print (mul 2 2)" "4"))
+              (test-case "Can run div"
+                         (check-program-output-equal? "print (div 4 2)" "2"))
+              (test-case "Can run mod"
+                         (check-program-output-equal? "print (mod 5 3)" "2"))
+              
+              (test-case "Can run equal-true"
+                         (check-program-output-equal? "print (equal 1 1)" "#t"))
+              (test-case "Can run equal-false"
+                         (check-program-output-equal? "print (equal 0 1)" "#f"))
+              (test-case "Can run lesser-true"
+                         (check-program-output-equal? "print (lesser 2 3)" "#t"))
+              (test-case "Can run lesser-false"
+                         (check-program-output-equal? "print (lesser 3 2)" "#f"))
+              (test-case "Can run greater-true"
+                         (check-program-output-equal? "print (greater 5 3)" "#t"))
+              (test-case "Can run greater-false"
+                         (check-program-output-equal? "print (greater 3 5)" "#f"))
+              
+              (test-case "Can run and-true"
+                         (check-program-output-equal? "print (and #t #t)" "#t"))
+              (test-case "Can run and-false"
+                         (check-program-output-equal? "print (and #t #f)" "#f"))
+              (test-case "Can run or-true"
+                         (check-program-output-equal? "print (or #t #f)" "#t"))
+              (test-case "Can run or-false"
+                         (check-program-output-equal? "print (or #f #f)" "#f"))
+              (test-case "Can run xor-true"
+                         (check-program-output-equal? "print (xor #f #t)" "#t"))
+              (test-case "Can run xor-false"
+                         (check-program-output-equal? "print (xor #t #t)" "#f"))
+
+              (test-case "Can run emptylist"
+                         (check-program-output-equal? "print (emptylist)" "()"))
+              (test-case "Can run cons - item + emptylist"
+                         (check-program-output-equal? "print (cons 2 (emptylist))" "(2)"))
               (test-case "Can run cons - item + list"
-                         (check-equal? (run "(cons 2 (cons #t (cons 4 (emptylist))))") '(2 #t 4)))
-              (test-case "Cons numbers"
-                         (check-equal? (run "(cons 2 2)") (cons 2 2)))
-              (test-case "Cons multiple numbers"
-                         (check-equal? (run "(cons 2 (cons 2 (cons 2 2)))") (cons 2 (cons 2 (cons 2 2)))))
-              (test-case "Irregular cons"
-                         (check-equal? (run "(let ((x 5) (y 6)) (cons x y))") (cons 5 6)))
-              (test-case "Car Case 1"
-                         (check-equal? (run "(car (cons 4 (emptylist)))") 4))
-              (test-case "Car Case 2"
-                         (check-equal? (run "(car (cons (add 4 5) (cons (mul 2 3) (cons (div 6 2) (emptylist)))))") 9))
-              (test-case "Car Case 3"
-                         (check-equal? (run "(cons 8 (car (cons (cons 5 (emptylist)) (cons 7 (emptylist)))))") '(8 5)))
-              (test-case "Car Case 4"
-                         (check-equal? (run "(cons (mul 4 2) (car (cons (cons (add 3 2) (emptylist)) (cons (add 6 1) (emptylist)))))") '(8 5)))
-              (test-case "Car Case with an if Statement"
-                         (check-equal? (run "(let ((x 5) (y 2) (z 3)) (car (if (greater y z) (cons x (cons y (cons z (emptylist)))) (cons z (cons y (cons x (emptylist)))))))") 3))
-              (test-case "Cdr Case 1"
-                         (check-equal? (run "(cdr (cons 4 (cons 3 (cons 2 (cons 1 (emptylist))))))") '(3 2 1)))
-              (test-case "Cdr Case 2"
-                         (check-equal? (run "(cons (cdr (cons 3 (cons 2 (cons 1 (emptylist))))) (cdr (cons 10 (cons 9 (cons 8 (emptylist))))))") '((2 1) 9 8)))
-              (test-case "Cdr Case 3 with conds"
-                         (check-equal? (run "(let ((x 5) (y 5) (z 2)) (cdr (cond ((greater x y) (cons x (cons z (cons y (emptylist)))))
-                                                                                 ((equal x y) (cons y (cons z (cons x (emptylist))))) (else (cons z (cons y (cons x (emptylist))))))))") '(2 5)))
-              (test-case "Null? with just an emptylist"
-                         (check-equal? (run "(null? (emptylist))") #t))
-              (test-case "NUll? with using a cdr of a list"
-                         (check-equal? (run "(null? (cdr (cons 4 (emptylist))))") #t))
-              (test-case "Null? that should be false"
-                         (check-equal? (run "(null? (cons 4 (emptylist)))") #f))
-              (test-case "Null? for something that is not a list"
-                         (check-equal? (run "(null? 1)") #f))
-              (test-case "Null? for cons of two numbers"
-                        (check-equal? (run "(null? (cons 4 4))") #f))
+                         (check-program-output-equal? "print (cons 2 (cons #t (cons 4 (emptylist))))" "(2 #t 4)"))
+              (test-case "Can run cons - item + item"
+                         (check-program-output-equal? "print (cons 2 2)" "(2 . 2)"))
+              (test-case "Can run cons - emptylist + emptylist"
+                         (check-program-output-equal? "print (cons (emptylist) (emptylist))" "(())"))
               (test-case "Can run list - no items"
-                         (check-equal? (run "(list)") '()))
+                         (check-program-output-equal? "print (list)" "()"))
+              (test-case "Can run list - one item"
+                         (check-program-output-equal? "print (list 2)" "(2)"))
               (test-case "Can run list - many items"
-                         (check-equal? (run "(list 2 #t 4)") '(2 #t 4)))
-              (test-case "Basic List test"
-                         (check-equal? (run "(list (lambda (x) (add x 5)) (add 4 5) (mul 2 3))") '((lambda (x) (add x 5)) 9 6)))
-              (test-case "append-item-simple"
-                         (check-equal? (run "(letrec ((appenditem (lambda (x lat)
-                               (cond
-                               ((null? lat) (cons x lat))
-                               (else(cons (car lat) (appenditem x (cdr lat)))))))) (appenditem 5 (list 1 2 3 4)))") '(1 2 3 4 5)))
-              (test-case "append-item-complex"
-                         (check-equal? (run "(letrec ((appenditem (lambda (x lat)
-                               (cond
-                               ((null? lat) (cons x lat))
-                               (else(cons (car lat) (appenditem x (cdr lat)))))))) (let* ((a 1) (b (add a 1)) (c (add a 2)) (d (add a 3))) (appenditem 5 (list a b c d))))") '(1 2 3 4 5)))
-              (test-case "facotorial"
-                         (check-equal? (run "(letrec ((fact (lambda (x) (cond ((equal 0 x) 1) (else (mul x (fact (sub x 1)))))))) (fact 5))") 120))
-              (test-case "provided-test-case"
-                         (check-equal? (run "((car (car (cdr (list (lambda (x) (add x 1)) (cons (lambda (y) (mul y 2))
-                                 (lambda (z) (mod z 3))) )))) (let* ((x 5) (y (mul x 2)) (z (mul y 2))) (if (lesser y z) (div 100 y) (sub 100 x))))") 20))
-              (test-case "multiple function calls"
-                         (check-equal? (run "(letrec ((appenditem (lambda (x lat)
-                               (cond
-                               ((null? lat) (cons x lat))
-                               (else(cons (car lat) (appenditem x (cdr lat)))))))(fact (lambda (x) (cond ((equal 0 x) 1) (else (mul x (fact (sub x 1)))))))) (appenditem (fact 5) (list 1 2 3 4)))") '(1 2 3 4 120)))
-              (test-case "Can express letrec-exp"
-                         (check-equal? (run "(lambda () (letrec ((a (lambda (x) (if (equal 0 x) #t (a (sub x 1)))))) (a 1)))")
-                                       '(lambda () (letrec ((a (lambda (x) (if (equal 0 x) #t (a (sub x 1)))))) (a 1)))))
+                         (check-program-output-equal? "print (list 2 #t 4)" "(2 #t 4)"))
+              (test-case "Can run list - items and lists"
+                         (check-program-output-equal? "print (list 2 (list 3))" "(2 (3))"))
+              (test-case "Can run null? - emptylist"
+                         (check-program-output-equal? "print (null? (emptylist))" "#t"))
+              (test-case "Can run null? - list"
+                         (check-program-output-equal? "print (null? (list 2))" "#f"))
+              (test-case "Can run null? - improper list"
+                         (check-program-output-equal? "print (null? (cons 2 2))" "#f"))
+              (test-case "Can run null? - non-list"
+                         (check-program-output-equal? "print (null? 2)" "#f"))
+              (test-case "Can run car - item + emptylist"
+                         (check-program-output-equal? "print (car (cons 2 (emptylist)))" "2"))
+              (test-case "Can run car - item + list"
+                         (check-program-output-equal? "print (car (cons 4 (cons 3 (cons 2 (emptylist)))))" "4"))
+              (test-case "Can run car - item + item"
+                         (check-program-output-equal? "print (car (cons 2 2))" "2"))
+              (test-case "Car throws exception when called on emptylist"
+                         (check-exception? "print (car (emptylist))"))
+              (test-case "Can run cdr - item + emptylist"
+                         (check-program-output-equal? "print (cdr (cons 2 (emptylist)))" "()"))
+              (test-case "Can run cdr - item + list"
+                         (check-program-output-equal? "print (cdr (cons 4 (cons 3 (cons 2 (emptylist)))))" "(3 2)"))
+              (test-case "Can run cdr - item + item"
+                         (check-program-output-equal? "print (cdr (cons 2 3))" "3"))
+              (test-case "Cdr throws exception when called on emptylist"
+                         (check-exception? "print (cdr (emptylist))"))
+              
+              (test-case "Can express num-exp"
+                         (check-program-output-equal? "print (lambda () 5)" "(lambda () 5)"))
+              (test-case "Can express bool-exp true"
+                         (check-program-output-equal? "print (lambda () #t)" "(lambda () #t)"))
+              (test-case "Can express bool-exp false"
+                         (check-program-output-equal? "print (lambda () #f)" "(lambda () #f)"))
+              (test-case "Can express var-exp"
+                         (check-program-output-equal? "print (lambda (x) x)" "(lambda (x) x)"))
+              (test-case "Can express if-exp"
+                         (check-program-output-equal? "print (lambda () (if #t 0 1))" "(lambda () (if #t 0 1))"))
+              (test-case "Can express let-exp"
+                         (check-program-output-equal? "print (lambda () (let ((a 0) (b #t)) a))" "(lambda () (let ((a 0) (b #t)) a))"))
               (test-case "Can express let*-exp"
-                         (check-equal? (run "(lambda () (let* ((a 0) (b a)) b))") '(lambda () (let* ((a 0) (b a)) b))))
+                         (check-program-output-equal? "print (lambda () (let* ((a 0) (b a)) b))" "(lambda () (let* ((a 0) (b a)) b))"))
+              (test-case "Can express letrec-exp"
+                         (check-program-output-equal? "print (lambda () (letrec ((a (lambda (x) (if (equal 0 x) #t (a (sub x 1)))))) (a 1)))" "(lambda () (letrec ((a (lambda (x) (if (equal 0 x) #t (a (sub x 1)))))) (a 1)))"))
+              (test-case "Can express cond-exp"
+                         (check-program-output-equal? "print (lambda () (cond (#t 1) (else 4)))" "(lambda () (cond (#t 1) (else 4)))"))
+              (test-case "Can express proc-exp"
+                         (check-program-output-equal? "print (lambda () (lambda (x y) x))" "(lambda () (lambda (x y) x))"))
+              (test-case "Can express call-exp"
+                         (check-program-output-equal? "print (lambda () (add 1 2))" "(lambda () (add 1 2))"))
+              
+              (test-case "Can run complicated-sequence-1"
+                         (check-program-output-equal? "print (add (sub 1 2) (mul (div 20 7) (mod 101 10)))" "1"))
+              (test-case "Can run complicated-sequence-2"
+                         (check-program-output-equal? "print (let ((x 5) (y 6)) (if (and (greater x 10) (equal y 6)) 20 40))" "40"))
+              
+              (test-case "Can run assignment5-supplied test case 1"
+                         (check-program-output-equal? "print ((lambda (x y) (add x y)) 10 3)" "13"))
+              (test-case "Can run assignment5-supplied test case 2"
+                         (check-program-output-equal? "print (cond (#t 10) (else 20))" "10"))
+              (test-case "Can run assignment5-supplied test case 3"
+                         (check-program-output-equal? "print ((lambda (x) (cond ((lesser x 0) (sub 0 x)) (else x))) 10)" "10"))
+              (test-case "Can run assignment5-supplied test case 4"
+                         (check-program-output-equal? "print ((lambda (x) (cond ((lesser x 0) (sub 0 x)) (else x))) (sub 0 10))" "10"))
+              
+              (test-case "Can run assignment6-supplied test case 1"
+                         (check-program-output-equal? "print (letrec ((fact (lambda (x) (cond ((equal 0 x) 1) (else (mul x (fact (sub x 1)))))))) (fact 5))" "120"))
+              (test-case "Can run assignment6-supplied test case 2"
+                         (check-program-output-equal? "print ((car (car (cdr (list (lambda (x) (add x 1)) (cons (lambda (y) (mul y 2)) (lambda (z) (mod z 3))))))) (let* ((x 5) (y (mul x 2)) (z (mul y 2))) (if (lesser y z) (div 100 y) (sub 100 x))))" "20"))
+
+              (test-case "Can run assignment7-supplied test case 1"
+                         (check-program-output-equal? "var x = 5; print x" "5"))
+              (test-case "Can run assignment7-supplied test case 2"
+                         (check-program-output-equal? "var x = 3; var y = 4; print(add x y)" "7"))
+              (test-case "Can run assignment7-supplied test case 3"
+                         (check-program-output-equal? "var x = 3; var y = 4; var z = 0; {while (greater x 0) do {z = (add z y); x = (sub x 1)}; print z}" "12"))
+              (test-case "Can run assignment7-supplied test case 4"
+                         (check-program-output-equal? "var x = 3; {print x; var x = 4; {print x}; print x}" "3" "4" "3"))
+              (test-case "Can run assignment7-supplied test case 5"
+                         (check-program-output-equal? "var f = (lambda (x y) (mul x y)); var x = 3; print(f 4 x)" "12"))
               ))
 
-              
-(run-tests demo-tests-hw4)
-(run-tests demo-tests-hw5)
-(run-tests demo-tests-hw6)
+
+(run-tests scan&parse-tests)
+(run-tests run-func-tests)

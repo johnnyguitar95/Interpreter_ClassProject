@@ -2,6 +2,7 @@
 ;John Halloran and Jakob Horner
 ;This is necessary code ported from homework 2
 (require "store.scm")
+(require "display-intercept.scm")
 
 (define-datatype environment environment?
   (empty-env)
@@ -70,9 +71,10 @@
 ;This is the grammar specified in homework specs
 (define expression-grammar
   '((a-program (stmt) prog-exp)
-
-    (stmt ("var" identifier "=" exp ";") assign-stmt)
+    (stmt (identifier "=" exp) assign-stmt)
     (stmt ("print" exp) print-stmt)
+    (stmt ("{" (separated-list stmt ";") "}") compound-stmt)
+    (stmt ("var" (separated-list identifier "=" exp ",") ";" stmt) block-stmt)
     (exp (number) const-exp)
     (exp (identifier) var-exp)
     (exp ("(" sub-exp ")") shell-exp)
@@ -113,8 +115,10 @@
                 (cases list-type (expval->lst expv)
                   (empty-list () '())
                   (cons-cell-type (cr cd)
-                            (cons (unparse cr) (unparse cd)))))      
-      )))
+                            (cons (unparse cr) (unparse cd)))))
+      (else
+       (eopl:error 'expv "Not a valid value to unparse ~s" expv)
+      ))))
 
 (define unparse-a-body
   (lambda (body)
@@ -195,33 +199,33 @@
     (cases a-program pgm
       (prog-exp (exp)
          (value-of-stmt exp
-                   (extend-env 'list (proc-val (prim-procedure 'list (lambda (lst env) (create-list lst env)) 1))
-                   (extend-env 'null? (proc-val (prim-procedure 'null (lambda (x) ;(if (not (list-type? x)) (bool-val #f)
+                   (extend-env 'list (ref-val (newref (proc-val (prim-procedure 'list (lambda (lst env) (create-list lst env)) 1))))
+                   (extend-env 'null? (ref-val (newref (proc-val (prim-procedure 'null (lambda (x) ;(if (not (list-type? x)) (bool-val #f)
                                                                         (cases expval x
                                                                         (list-val (lst)
                                                                              (cases list-type (expval->lst x)
                                                                                (empty-list () (bool-val #t))
                                                                                (else (bool-val #f))))
-                                                                        (else (bool-val #f)))) 1))
-                   (extend-env 'cdr (proc-val (prim-procedure 'cdr (lambda (x) (cases list-type x
+                                                                        (else (bool-val #f)))) 1))))
+                   (extend-env 'cdr (ref-val (newref (proc-val (prim-procedure 'cdr (lambda (x) (cases list-type x
                                                                                  (cons-cell-type (cr cd) cd)
-                                                                                 (else (eopl:error 'car "Not a valid cons-cell-type ~s" x))))1))
-                   (extend-env 'car (proc-val (prim-procedure 'car (lambda (x) (cases list-type x
+                                                                                 (else (eopl:error 'car "Not a valid cons-cell-type ~s" x))))1))))
+                   (extend-env 'car (ref-val (newref (proc-val (prim-procedure 'car (lambda (x) (cases list-type x
                                                                                  (cons-cell-type (cr cd) cr)
-                                                                                 (else (eopl:error 'car "Not a valid cons-cell-type ~s" x))))1))
-                   (extend-env 'cons (proc-val (prim-procedure 'cons (lambda (x y) (list-val (cons-cell-type x y))) 2))
-                   (extend-env 'emptylist (proc-val (prim-procedure 'emptylist (lambda () (list-val (empty-list))) 0))
-                   (extend-env 'xor (proc-val (prim-procedure 'xor (lambda (x y) (bool-val (not (eq? (expval->bool x) (expval->bool y))))) 2))
-                   (extend-env 'or (proc-val (prim-procedure 'or (lambda (x y) (bool-val (or (expval->bool x) (expval->bool y)))) 2))
-                   (extend-env 'and (proc-val (prim-procedure 'and  (lambda (x y) (bool-val (and (expval->bool x) (expval->bool y)))) 2))
-                   (extend-env 'greater (proc-val (prim-procedure 'greater  (lambda (x y) (bool-val (> (expval->num x) (expval->num y)))) 2))
-                   (extend-env 'lesser (proc-val (prim-procedure 'lesser  (lambda (x y) (bool-val (< (expval->num x) (expval->num y)))) 2))
-                   (extend-env 'equal (proc-val (prim-procedure 'equal  (lambda (x y) (bool-val (eq? (expval->num x) (expval->num y)))) 2))
-                   (extend-env 'mod (proc-val (prim-procedure 'mod  (lambda (x y) (num-val (remainder (expval->num x) (expval->num y))))2))
-                   (extend-env 'div (proc-val (prim-procedure 'div  (lambda (x y) (num-val (quotient (expval->num x) (expval->num y)))) 2))
-                   (extend-env 'mul (proc-val (prim-procedure 'mul  (lambda (x y) (num-val (* (expval->num x) (expval->num y)))) 2))
-                   (extend-env 'sub (proc-val (prim-procedure 'sub  (lambda (x y) (num-val (- (expval->num x) (expval->num y)))) 2))
-                   (extend-env 'add (proc-val (prim-procedure 'add  (lambda (x y) (num-val (+ (expval->num x) (expval->num y)))) 2))
+                                                                                 (else (eopl:error 'car "Not a valid cons-cell-type ~s" x))))1))))
+                   (extend-env 'cons (ref-val (newref (proc-val (prim-procedure 'cons (lambda (x y) (list-val (cons-cell-type x y))) 2))))
+                   (extend-env 'emptylist (ref-val (newref (proc-val (prim-procedure 'emptylist (lambda () (list-val (empty-list))) 0))))
+                   (extend-env 'xor (ref-val (newref (proc-val (prim-procedure 'xor (lambda (x y) (bool-val (not (eq? (expval->bool x) (expval->bool y))))) 2))))
+                   (extend-env 'or (ref-val (newref (proc-val (prim-procedure 'or (lambda (x y) (bool-val (or (expval->bool x) (expval->bool y)))) 2))))
+                   (extend-env 'and (ref-val (newref (proc-val (prim-procedure 'and  (lambda (x y) (bool-val (and (expval->bool x) (expval->bool y)))) 2))))
+                   (extend-env 'greater (ref-val (newref (proc-val (prim-procedure 'greater  (lambda (x y) (bool-val (> (expval->num x) (expval->num y)))) 2))))
+                   (extend-env 'lesser (ref-val (newref (proc-val (prim-procedure 'lesser  (lambda (x y) (bool-val (< (expval->num x) (expval->num y)))) 2))))
+                   (extend-env 'equal (ref-val (newref (proc-val (prim-procedure 'equal  (lambda (x y) (bool-val (eq? (expval->num x) (expval->num y)))) 2))))
+                   (extend-env 'mod (ref-val (newref (proc-val (prim-procedure 'mod  (lambda (x y) (num-val (remainder (expval->num x) (expval->num y))))2))))
+                   (extend-env 'div (ref-val (newref (proc-val (prim-procedure 'div  (lambda (x y) (num-val (quotient (expval->num x) (expval->num y)))) 2))))
+                   (extend-env 'mul (ref-val (newref (proc-val (prim-procedure 'mul  (lambda (x y) (num-val (* (expval->num x) (expval->num y)))) 2))))
+                   (extend-env 'sub (ref-val (newref (proc-val (prim-procedure 'sub  (lambda (x y) (num-val (- (expval->num x) (expval->num y)))) 2))))
+                   (extend-env 'add (ref-val (newref (proc-val (prim-procedure 'add  (lambda (x y) (num-val (+ (expval->num x) (expval->num y)))) 2))))
                                            (empty-env)
                                            )))))))))))))))))))
       (else
@@ -238,6 +242,8 @@
    (proc proc?))
   (list-val
    (lst list-type?))
+  (ref-val
+   (ref reference?))
   )
 
 ;Data structure for a cons cell for lists 
@@ -289,6 +295,13 @@
       (list-val (lst) lst)
       (else (eopl:error 'list-exp "Not an s-expression ~s" list-exp)))))
 
+;expval to a reference value for the store
+(define expval->ref
+  (lambda (ref)
+    (cases expval ref
+      (ref-val (reference) reference)
+      (else (eopl:error 'ref "Not a reference value ~s" ref)))))
+
 
 ;applying a procedure
 (define apply-procedure
@@ -324,11 +337,17 @@
 (define value-of-stmt
   (lambda (stm env)
     (cases stmt stm
+      (assign-stmt (var rhs)
+            (setref! (expval->ref (apply-env env var)) (value-of-exp rhs env)))
       (print-stmt (exp)
                   (write (unparse (value-of-exp exp env)))
                   (newline))
+      (compound-stmt (stmts)
+                     (for-each (lambda (x) (value-of-stmt x env)) stmts))
+      (block-stmt (vars init-exps body-stmt)
+                  (value-of-stmt body-stmt (assign-new-vars vars init-exps env)))
       (else
-       (eopl:error 'stm "Improper statement" stm)))))
+       (eopl:error 'stm "Improper statement ~s" stm)))))
 
 (define value-of-exp
  (lambda (ex env)
@@ -336,7 +355,7 @@
     ;case for constant expressions
     (const-exp (num) (num-val num))
     ;case for variable expressions
-    (var-exp (var) (apply-env env var))
+    (var-exp (var) (deref (expval->ref (apply-env env var))))                 
     ;case for general expressions
     (shell-exp (body) (value-of-body body env))
     ;case for boolean expressions
@@ -376,6 +395,15 @@
       (else
        (eopl:error 'exp "Improper subexpression ~s" exp))
       )))
+
+;helper function for new assignments
+(define assign-new-vars
+  (lambda (vars exps env)
+    (cond
+      ((null? vars) env)
+      (else
+       (assign-new-vars (cdr vars) (cdr exps) (extend-env (car vars) (ref-val (newref (value-of-exp (car exps) env))) env)))
+      ))) 
 
 ;helper function for binding letrec stuff
 (define binding-letrec-expressions
