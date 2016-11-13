@@ -434,7 +434,12 @@
   (lambda (exp env-old env-new);exp is a list and env is the environment 
     (cond
       ((null? exp) env-new)
-      (else(sublet-iterator (cdr exp) env-new (value-of-subletexp (car exp) env-old env-new)))
+      (else (cases sublet-exp (car exp)
+        (slet-exp (id exp1)
+                  (sublet-iterator (cdr exp) env-old (extend-env id (ref-val (newref (value-of-exp exp1 env-old))) env-new)))
+      (else
+       (eopl:error 'exp "Improper sublet expression ~s" exp))))
+       ;(sublet-iterator (cdr exp) env-new (extend-env ;(value-of-subletexp (car exp) env-old env-new)))
   )))
 ;helper function for cond statements
 (define evaluate-conds
