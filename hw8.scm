@@ -115,6 +115,12 @@
     (value-of-program (scan&parse string))
     'run-complete
    ))
+(define typecheck
+  (lambda (string)
+    (eopl:error "not implemented error")
+  )
+)
+
 
 (define unparse
   (lambda (expv)
@@ -525,5 +531,5 @@
       )))
 
 
-(provide scan&parse run)
+(provide scan&parse run typecheck)
 ;TA-BOT:MAILTO john.p.halloran@marquette.edu jakob.horner@marquette.edu
