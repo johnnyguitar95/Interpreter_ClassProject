@@ -94,6 +94,8 @@
                          (check-program-output-equal? "print (let ((x 4)) (add x 1))" "5"))
               (test-case "Can run let for bound bindings"
                          (check-program-output-equal? "print (let ((x 4)) (let ((y x)) y))" "4"))
+              (test-case "Let does not let*"
+                         (check-program-output-equal? "print (let ((x 4)) (let ((x 5) (y x)) y))" "4"))
               (test-case "Let throws exception for trying to let* (feedback bindings)"
                          (check-exception? "print (let ((x 4) (y x)) 1)"))
               (test-case "Let throws exception for trying to letrec (recursive bindings)"

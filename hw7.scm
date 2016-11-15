@@ -311,7 +311,7 @@
   (lambda (proc1 val env)
     (cases proc proc1
       (procedure (var body saved-env)
-                 (value-of-exp body (bind-args var val env env)));add mapping function 
+                 (value-of-exp body (bind-args var val saved-env env)));add mapping function 
       (prim-procedure (name oper argnum)
                   (cond
                   ((and (zero? (number-of-vals val)) (eq? name 'emptylist)) (oper))
