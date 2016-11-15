@@ -12,9 +12,9 @@
    (env environment?)
   )
   (extend-env-rec
-   (p-name symbol?)
-   (b-var (list-of symbol?))
-   (body exp?)
+   (p-names (list-of symbol?))
+   (b-vars-s (list-of (list-of symbol?)))
+   (bodies (list-of exp?))
    (env environment?)
   )
 )
@@ -29,15 +29,21 @@
                           (apply-env env search-var)
                       )
           )
-          (extend-env-rec (p-name b-var p-body saved-env)
-                      (if (eq? search-var p-name)
-                          (ref-val (newref (proc-val (procedure b-var p-body saved-env))))
-                          (apply-env saved-env search-var)))
+          (extend-env-rec (p-names b-vars-s p-bodies saved-env)
+                      (extend-env-rec-helper p-names b-vars-s p-bodies search-var env saved-env))
         )
         (report-invalid-env env)
     )
   )
 )
+
+(define extend-env-rec-helper
+  (lambda (p-names b-vars-s p-bodies search-var top-env next-env)
+    (cond
+       ((null? p-names) (apply-env next-env search-var))
+       ((eq? (car p-names) search-var) (ref-val (newref (proc-val (procedure (car b-vars-s) (car p-bodies) top-env)))))
+       (else (extend-env-rec-helper (cdr p-names) (cdr b-vars-s) (cdr p-bodies) search-var top-env next-env)))))
+
 (define has-binding?
   (lambda (env s)
     (if (environment? env)
@@ -394,8 +400,8 @@
         (value-of-exp exp1 (sublet-iterator lstexp env env)) 
       )
       ;case for letrec expressions
-      (letrec-exp (p-names b-vars proc-bodies letrec-body) ;list of procedure names, list of list of bound variables, list of procedure bodies, and the letrec body
-                  (value-of-exp letrec-body (binding-letrec-expressions p-names b-vars proc-bodies env))) ;binding-letrec-expressions will be our new environment when we evaluate the letrec-body
+      (letrec-exp (p-names b-vars-s proc-bodies letrec-body) ;list of procedure names, list of list of bound variables, list of procedure bodies, and the letrec body
+                  (value-of-exp letrec-body (binding-letrec-expressions p-names b-vars-s proc-bodies env))) ;binding-letrec-expressions will be our new environment when we evaluate the letrec-body
       ;case for let* expressions
       (let*-exp (lstexp exp1)
                (value-of-exp exp1 (sublet*-iterator lstexp env)))
@@ -424,10 +430,7 @@
 ;helper function for binding letrec stuff
 (define binding-letrec-expressions
   (lambda (p-names b-vars proc-bodies env)
-    (cond
-      ((or (null? p-names) (null? b-vars) (null? proc-bodies)) env);end of all the lists (they should all have equal numbers to begin with
-      (else  (extend-env-rec (car p-names) (car b-vars) (car proc-bodies) (binding-letrec-expressions (cdr p-names) (cdr b-vars) (cdr proc-bodies) env)))
-  )))
+      (extend-env-rec p-names b-vars proc-bodies env)))
 
 ;helper function to go through the list of sublet expressions
 (define sublet-iterator
