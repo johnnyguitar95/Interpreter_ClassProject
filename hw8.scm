@@ -104,7 +104,7 @@
     (type-exp ("int") int-type-exp)
     (type-exp ("bool") bool-type-exp)
     (type-exp ("(" (separated-list type-exp "*") "->" type-exp ")") proc-type-exp)
-    (type-exp ("listof" type-exp) list-type-exp)
+    ;(type-exp ("listof" type-exp) list-type-exp)
     (sub-boolval ("#t") true-exp)
     (sub-boolval ("#f") false-exp)
     ))
@@ -115,9 +115,34 @@
     (value-of-program (scan&parse string))
     'run-complete
    ))
+
+(define check-equal-type!
+  (lambda (ty1 ty2 exp)
+    (if (not (equal? ty1 ty2))
+        (report-unequal-types ty1 ty2 exp) #f)))
+
+(define report-unequal-types
+  (lambda (ty1 ty2 exp)
+    (eopl:error 'check-equal-type! "TYpes didn't match: ~s != ~a in~%~a"
+               (type-to-external-form ty1)
+               (type-to-external-form ty2)
+               exp)))
+
+(define type-to-external-form
+  (lambda (ty)
+    (cases type-exp ty
+      (int-type-exp () 'int)
+      (bool-type-exp () 'bool)
+      (proc-type-exp (arg-type result-type)
+                 (list
+                  (type-to-external-form arg-type)
+                  '->
+                  (type-to-external-form result-type))))))
+
 (define typecheck
-  (lambda (string)
-    (eopl:error "not implemented error")
+  (lambda (pgm)
+    (cases program pgm
+      (a-program (exp1) (type-of exp1 
   )
 )
 
