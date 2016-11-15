@@ -1,0 +1,1 @@
+("6.2.1" ("63ea8079aa1eafe1d9eb30a543a4f8ed8d9df08d" . "fb27873793196675dcadd341cfab5f8b5330164d") #"/users/majors/jhallora/COSC3410/store.scm" (collects #"eopl" #"main.rkt") #"/users/majors/jhallora/COSC3410/display-intercept.scm" (collects #"eopl" #"lang" #"reader.rkt"))
