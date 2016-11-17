@@ -12,8 +12,10 @@
    (env environment?)
   )
   (extend-env-rec
+   (return-types (list-of type-exp?))
    (p-names (list-of symbol?))
    (b-vars-s (list-of (list-of symbol?)))
+   (param-types (list-of (list-of type-exp?)))
    (bodies (list-of exp?))
    (env environment?)
   )
@@ -29,8 +31,8 @@
                           (apply-env env search-var)
                       )
           )
-          (extend-env-rec (p-names b-vars-s p-bodies saved-env)
-                      (extend-env-rec-helper p-names b-vars-s p-bodies search-var env saved-env))
+          (extend-env-rec (return-types p-names b-vars-s param-types p-bodies saved-env)
+                      (extend-env-rec-helper return-types p-names b-vars-s param-types p-bodies search-var env saved-env))
         )
         (report-invalid-env env)
     )
@@ -38,30 +40,12 @@
 )
 
 (define extend-env-rec-helper
-  (lambda (p-names b-vars-s p-bodies search-var top-env next-env)
+  (lambda (return-types p-names b-vars-s param-types p-bodies search-var top-env next-env)
     (cond
        ((null? p-names) (apply-env next-env search-var))
-       ((eq? (car p-names) search-var) (ref-val (newref (proc-val (procedure (car b-vars-s) (car p-bodies) top-env)))))
-       (else (extend-env-rec-helper (cdr p-names) (cdr b-vars-s) (cdr p-bodies) search-var top-env next-env)))))
+       ((eq? (car p-names) search-var) (ref-val (newref (proc-val (procedure (car b-vars-s) (car param-types) (car p-bodies) top-env)))))
+       (else (extend-env-rec-helper (cdr return-types) (cdr p-names) (cdr b-vars-s) (cdr param-types) (cdr p-bodies) search-var top-env next-env)))))
 
-(define has-binding?
-  (lambda (env s)
-    (if (environment? env)
-        (cases environment env
-          (empty-env () #f)
-          (extend-env (var val saved-env)
-                      (if (eq? var s)
-                          #t
-                          (has-binding? saved-env s)
-                      )
-          )
-          (extend-env-rec (p-name b-var p-body saved-env)
-                      (if (eq? p-name s) #t (has-binding? saved-env s)))
-        )
-        (report-invalid-env env)
-    )
-  )
-)
 (define report-no-binding-found
   (lambda (search-var)
     (eopl:error 'apply-env "No binding for ~s" search-var)))
@@ -90,12 +74,12 @@
     (sub-exp ("cond" "(" (arbno exp exp ")""(") "else" exp ")") cond-exp)
     (sub-exp (exp (arbno exp)) call-exp)
     (sub-exp ("if" exp exp exp) if-exp)
-    (sub-exp ("lambda" "(" (arbno identifier) ")" exp) proc-exp)
-    (sub-exp ("letrec" "(" (arbno "(" identifier "(" "lambda" "(" (arbno identifier) ")" exp ")" ")") ")" exp) letrec-exp) 
+    (sub-exp ("lambda" "(" (arbno type-exp ":" identifier) ")" exp) proc-exp)
+    (sub-exp ("letrec" "(" (arbno "(" type-exp identifier "(" "lambda" "(" (arbno identifier ":" type-exp) ")" exp ")" ")") ")" exp) letrec-exp) 
     (sub-exp ("let" "(" (arbno sublet-exp) ")" exp) let-exp)
     (sub-exp ("let*" "(" (arbno sublet-exp) ")" exp) let*-exp)
     (sublet-exp ("(" identifier exp ")") slet-exp)
-    (sub-exp ("emptylist") emptylist-exp)
+    (sub-exp ("emptylist" type-exp) emptylist-exp)
     (sub-exp ("cons" exp exp) cons-exp)
     (sub-exp ("car" exp) car-exp)
     (sub-exp ("cdr" exp) cdr-exp)
@@ -104,7 +88,8 @@
     (type-exp ("int") int-type-exp)
     (type-exp ("bool") bool-type-exp)
     (type-exp ("(" (separated-list type-exp "*") "->" type-exp ")") proc-type-exp)
-    ;(type-exp ("listof" type-exp) list-type-exp)
+    (type-exp ("listof" type-exp) list-type-exp)
+    (type-exp ("void") void-type-exp)
     (sub-boolval ("#t") true-exp)
     (sub-boolval ("#f") false-exp)
     ))
@@ -137,15 +122,42 @@
                  (list
                   (type-to-external-form arg-type)
                   '->
-                  (type-to-external-form result-type))))))
+                  (type-to-external-form result-type)))
+      (list-type-exp (type)
+                     (list 'listof type))
+      (void-type-exp () 'void))))
+
+(define init-type-env
+  (lambda ()
+    (extend-env 'xor bool-type-exp
+                (extend-env 'or bool-type-exp
+                (extend-env 'and bool-type-exp 
+                (extend-env 'greater bool-type-exp
+                (extend-env 'lesser bool-type-exp
+                (extend-env 'equal bool-type-exp
+                (extend-env 'mod int-type-exp
+                (extend-env 'div int-type-exp
+                (extend-env 'mul int-type-exp
+                (extend-env 'sub int-type-exp
+                (extend-env 'add int-type-exp
+                (empty-env))))))))))))))
+
 
 (define typecheck
   (lambda (pgm)
-    (cases program pgm
-      (a-program (exp1) (type-of exp1 
-  )
-)
+    (cases a-program pgm
+      (prog-exp (pgm1)
+       (type-of-stmt pgm1 init-type-env)))))
 
+(define type-of-stmt
+  (lambda (exp env)
+    (cases stmt
+      (assign-stmt (id exp)
+                   (extend-env id (type-of-exp exp env) env))
+      (print-stmt (exp)
+                  (type-of-exp exp env))
+      (compound-stmt (stmts)
+                     (
 
 (define unparse
   (lambda (expv)
@@ -156,7 +168,7 @@
                  bool)
       (proc-val (proce)
                 (cases proc (expval->proc expv)
-                 (procedure (var body saved-env)
+                 (procedure (var types body saved-env)
                             (list 'lambda var (unparse-a-body body)))
                  (prim-procedure (name oper argnum)
                             name)))
@@ -193,13 +205,13 @@
                 (cons (unparse-a-body rator) (map unparse-a-body rands)))
       (if-exp (bool exp1 exp2)
               (list 'if (unparse-a-body bool) (unparse-a-body exp1) (unparse-a-body exp2)))
-      (proc-exp (var body)
+      (proc-exp (types var body)
               (list 'lambda var (unparse-a-body body)))
       (let-exp (listexp exp1)
               (list 'let (unparse-sublets listexp) (unparse-a-body exp1)))
       (let*-exp (listexp exp1)
               (list 'let* (unparse-sublets listexp) (unparse-a-body exp1)))
-      (letrec-exp (p-names b-vars bodies letrec-body)
+      (letrec-exp (types1 p-names b-vars types2 bodies letrec-body)
               (list 'letrec (unparse-letrec-exp p-names b-vars bodies) (unparse-a-body letrec-body)))
       (else (eopl:error 'sub-exp "Not a valid sub expression for unparsing ~s" subbody)))))
 
@@ -290,6 +302,7 @@
 (define-datatype proc proc?
   (procedure
    (var (list-of symbol?))
+   (types (list-of type-exp?))
    (body exp?)
    (saved-env environment?))
   (prim-procedure
@@ -340,7 +353,7 @@
 (define apply-procedure
   (lambda (proc1 val env)
     (cases proc proc1
-      (procedure (var body saved-env)
+      (procedure (var types body saved-env)
                  (value-of-exp body (bind-args var val saved-env env)));add mapping function 
       (prim-procedure (name oper argnum)
                   (cond
@@ -417,20 +430,20 @@
           ((expval->bool (value-of-exp bool env)) (value-of-exp exp1 env))
           (else (value-of-exp exp2 env))))
       ;case for lambda expressions
-      (proc-exp (var body)
-                (proc-val (procedure var body env)))
+      (proc-exp (types var body)
+                (proc-val (procedure var types body env)))
       ;case for let expressions  
       (let-exp (lstexp exp1)
         (value-of-exp exp1 (sublet-iterator lstexp env env)) 
       )
       ;case for letrec expressions
-      (letrec-exp (p-names b-vars-s proc-bodies letrec-body) ;list of procedure names, list of list of bound variables, list of procedure bodies, and the letrec body
-                  (value-of-exp letrec-body (binding-letrec-expressions p-names b-vars-s proc-bodies env))) ;binding-letrec-expressions will be our new environment when we evaluate the letrec-body
+      (letrec-exp (types1 p-names b-vars-s types2 proc-bodies letrec-body) ;list of procedure names, list of list of bound variables, list of procedure bodies, and the letrec body
+                  (value-of-exp letrec-body (binding-letrec-expressions types1 p-names b-vars-s types2 proc-bodies env))) ;binding-letrec-expressions will be our new environment when we evaluate the letrec-body
       ;case for let* expressions
       (let*-exp (lstexp exp1)
                (value-of-exp exp1 (sublet*-iterator lstexp env)))
       ;case for emptylist expressions
-      (emptylist-exp ()
+      (emptylist-exp (type)
                      (list-val (empty-list)))
       (cons-exp (exp1 exp2)
                 (list-val (cons-cell-type (value-of-exp exp1 env) (value-of-exp exp2 env))))
@@ -475,8 +488,8 @@
 
 ;helper function for binding letrec stuff
 (define binding-letrec-expressions
-  (lambda (p-names b-vars proc-bodies env)
-      (extend-env-rec p-names b-vars proc-bodies env)))
+  (lambda (types1 p-names b-vars types2 proc-bodies env)
+      (extend-env-rec types1 p-names b-vars types2 proc-bodies env)))
 
 ;helper function to go through the list of sublet expressions
 (define sublet-iterator
@@ -556,5 +569,5 @@
       )))
 
 
-(provide scan&parse run typecheck)
+(provide scan&parse run)
 ;TA-BOT:MAILTO john.p.halloran@marquette.edu jakob.horner@marquette.edu
