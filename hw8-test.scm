@@ -285,7 +285,7 @@
               (test-case "Can run assignment7-supplied test case 4"
                          (check-program-output-equal? "var x = 3; {print x; var x = 4; {print x}; print x}" "3" "4" "3"))
               (test-case "Can run assignment7-supplied test case 5"
-                         (check-program-output-equal? "var f = (lambda (x y) (mul x y)); var x = 3; print(f 4 x)" "12"))
+                         (check-program-output-equal? "var f = (lambda (x:int y:int) (mul x y)); var x = 3; print(f 4 x)" "12"))
 
               (test-case "Can run assignment8-supplied test case 1"
                          (check-program-output-equal? "print 5" "int"))
@@ -293,6 +293,11 @@
                          (check-program-output-equal? "if #t then print 5 else print 6" "void"))
               (test-case "Can run assignment8-supplied test case 3"
                          (check-program-output-equal? "print (emptylist bool)" "(listof bool)"))
+              (test-case "Can run assignment8-supplied test case 4"
+                         (check-program-output-equal? "print (list (lambda (x:int) (add x 1)) (lambda (y:int) (add y 2)) (lambda (z:int) (add z 3)))" "(listof (int -> int))"))
+              (test-case "Can run assignment8-supplied test case 5"
+                         (check-program-output-equal? "print (letrec ((int fib (lambda (x:int) (if (lesser x 2) x (add (fib (sub x 1)) (fib (sub x 2))))))) (fib 1))" "int"))
+              
               ))
 
 

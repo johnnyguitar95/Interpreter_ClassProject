@@ -74,7 +74,7 @@
     (sub-exp ("cond" "(" (arbno exp exp ")""(") "else" exp ")") cond-exp)
     (sub-exp (exp (arbno exp)) call-exp)
     (sub-exp ("if" exp exp exp) if-exp)
-    (sub-exp ("lambda" "(" (arbno type-exp ":" identifier) ")" exp) proc-exp)
+    (sub-exp ("lambda" "(" (arbno identifier ":" type-exp) ")" exp) proc-exp)
     (sub-exp ("letrec" "(" (arbno "(" type-exp identifier "(" "lambda" "(" (arbno identifier ":" type-exp) ")" exp ")" ")") ")" exp) letrec-exp) 
     (sub-exp ("let" "(" (arbno sublet-exp) ")" exp) let-exp)
     (sub-exp ("let*" "(" (arbno sublet-exp) ")" exp) let*-exp)
@@ -176,7 +176,7 @@
   (lambda (vars exps env old-env)
     (cond
       ((null? vars) env)
-      (assign-types-for-vars (cdr vars) (cdr exps) (extend-env (car vars) (type-of-exp (car exp) old-env) env) old-env))))
+      (assign-types-for-vars (cdr vars) (cdr exps) (extend-env (car vars) (type-of-exp (car exps) old-env) env) old-env))))
 
 (define type-of-exp
   (lambda (exp env)
