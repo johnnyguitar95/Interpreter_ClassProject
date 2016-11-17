@@ -226,6 +226,14 @@
                 (check-equal-type! (bool-type-exp) ty1 test-exp)
                 (check-equal-type! ty2 ty3 exp)
                 ty2))
+      (emptylist-exp (type)
+                     type)
+      (cons-exp (exp1 l-exp)
+                (let ((newcar (type-of-exp exp1 env))
+                      (newcdr (type-of-exp l-exp env)))
+                  (check-equal-type! newcar newcdr exp)
+                  newcar))
+      ;(car-exp (l-exp
       (else
        '()))))
 
