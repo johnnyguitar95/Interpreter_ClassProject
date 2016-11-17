@@ -1,7 +1,6 @@
 #lang scheme/base
 
-;TA-BOT:MAILTO nathan.arpin@marquette.edu charles.morley@marquette.edu
-;Nathan Arpin and Charlie Morley
+;Much code borrowed with permission from Nathan Arpin and Charlie Morley
 ;These test cases are licensed only under terms discussed with either of the authors and terms that appear in this document.
 ;No republishing or redistribution of these test cases may be done by the licensed recipients of these test cases.
 
@@ -25,6 +24,16 @@
     (define expected-output-lines (cdr params))
     (check-displayed-and-equal?
      (lambda () (run program-input))
+     (combine-string-lines expected-output-lines)
+     'run-complete)
+    )
+  )
+(define check-program-type-equal?
+  (lambda params
+    (define program-input (car params))
+    (define expected-output-lines (cdr params))
+    (check-displayed-and-equal?
+     (lambda () (typecheck program-input))
      (combine-string-lines expected-output-lines)
      'run-complete)
     )
@@ -288,15 +297,15 @@
                          (check-program-output-equal? "var f = (lambda (x:int y:int) (mul x y)); var x = 3; print(f 4 x)" "12"))
 
               (test-case "Can run assignment8-supplied test case 1"
-                         (check-program-output-equal? "print 5" "int"))
+                         (check-program-type-equal? "print 5" "int"))
               (test-case "Can run assignment8-supplied test case 2"
-                         (check-program-output-equal? "if #t then print 5 else print 6" "void"))
+                         (check-program-type-equal? "if #t then print 5 else print 6" "void"))
               (test-case "Can run assignment8-supplied test case 3"
-                         (check-program-output-equal? "print (emptylist bool)" "(listof bool)"))
+                         (check-program-type-equal? "print (emptylist bool)" "(listof bool)"))
               (test-case "Can run assignment8-supplied test case 4"
-                         (check-program-output-equal? "print (list (lambda (x:int) (add x 1)) (lambda (y:int) (add y 2)) (lambda (z:int) (add z 3)))" "(listof (int -> int))"))
+                         (check-program-type-equal? "print (list (lambda (x:int) (add x 1)) (lambda (y:int) (add y 2)) (lambda (z:int) (add z 3)))" "(listof (int -> int))"))
               (test-case "Can run assignment8-supplied test case 5"
-                         (check-program-output-equal? "print (letrec ((int fib (lambda (x:int) (if (lesser x 2) x (add (fib (sub x 1)) (fib (sub x 2))))))) (fib 1))" "int"))
+                         (check-program-type-equal? "print (letrec ((int fib (lambda (x:int) (if (lesser x 2) x (add (fib (sub x 1)) (fib (sub x 2))))))) (fib 1))" "int"))
               
               ))
 

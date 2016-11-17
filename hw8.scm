@@ -592,5 +592,5 @@
       )))
 
 
-(provide scan&parse run)
+(provide scan&parse run typecheck)
 ;TA-BOT:MAILTO john.p.halloran@marquette.edu jakob.horner@marquette.edu
