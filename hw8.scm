@@ -156,6 +156,8 @@
        'bool)
       (void-type-exp ()
        'void)
+      (list-type-exp (type)
+        (list 'listof (unparse-type type)))
       (else (eopl:error 'pgm "bad typechecking for the unparser" pgm)))))
 
 
@@ -227,15 +229,38 @@
                 (check-equal-type! ty2 ty3 exp)
                 ty2))
       (emptylist-exp (type)
-                     type)
+                     (list-type-exp type))
       (cons-exp (exp1 l-exp)
                 (let ((newcar (type-of-exp exp1 env))
                       (newcdr (type-of-exp l-exp env)))
-                  (check-equal-type! newcar newcdr exp)
-                  newcar))
-      ;(car-exp (l-exp
+                  (check-equal-type! (list-type-exp newcar) newcdr exp)
+                  (cases type-exp newcdr
+                    (list-type-exp (type)
+                                   (check-equal-type! type newcar exp))
+                    (else (eopl:error 'newcdr "Bad cdr for your list type ~s" newcdr)))
+                  newcdr))
+      (car-exp (l-exp)
+               (let ((ty (type-of-exp l-exp env)))
+                 (cases type-exp ty
+                   (list-type-exp (type)
+                                  type)
+                   (else (eopl:error 'ty "Not a good list to car from ~s" ty)))))
+      (cdr-exp (l-exp)
+               (type-of-exp l-exp env))
+      (nullcheck-exp (exp1)
+                     (type-of-exp exp1 env))
+      (list-exp (exps)
+                (type-check-list-exps (type-of-exp (car exps) env) (cdr exps) env exp))
       (else
        '()))))
+
+(define type-check-list-exps
+  (lambda (first-type exps env exp)
+    (cond
+      ((null? exps) (list-type-exp first-type))
+    (else
+     (check-equal-type! first-type (type-of-exp (car exps) env) exp)
+     (type-check-list-exps first-type (cdr exps) env exp)))))
 
 (define call-type-check
   (lambda (op rands env exp)

@@ -312,9 +312,9 @@
                          (check-equal? (typecheck "print (add (cond (#t 3)(else 5)) 89)") 'int))
 
               (test-case "Simple Cons - ints"
-                         (check-equal? (typecheck "print (cons 1 (cons 2 (cons 3 (cons 4 (emptylist int)))))") 'int))
+                         (check-equal? (typecheck "print (cons 1 (cons 2 (cons 3 (cons 4 (emptylist int)))))") '(listof int)))
               (test-case "Simple Cons - bools"
-                         (check-equal? (typecheck "print (cons #t (cons #t (cons #f (cons #t (emptylist bool)))))") 'bool))
+                         (check-equal? (typecheck "print (cons #t (cons #t (cons #f (cons #t (emptylist bool)))))") '(listof bool)))
               (test-case "Checking empty list base case"
                          (check-equal? (typecheck "print (emptylist int)") '(listof int)))
               ))
