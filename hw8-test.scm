@@ -304,6 +304,12 @@
 
               (test-case "Checking simple conds"
                          (check-equal? (typecheck "print (cond (#t 4)(#t 2) (else 5))") 'int))
+              (test-case "Simple Primitive 1"
+                         (check-equal? (typecheck "print (add 4 5)") 'int))
+              (test-case "Simple Primitive 2"
+                         (check-equal? (typecheck "print (equal #t #f)") 'bool))
+              (test-case "Simple Primitive 3"
+                         (check-equal? (typecheck "print (add (cond (#t 3)(else 5)) 89)") 'int))
               (test-case "Checking empty list base case"
                          (check-equal? (typecheck "print (emptylist int)") '(listof int)))
               ))
