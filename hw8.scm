@@ -151,13 +151,20 @@
 
 (define type-of-stmt
   (lambda (exp env)
-    (cases stmt
+    (cases stmt exp
       (assign-stmt (id exp)
                    (extend-env id (type-of-exp exp env) env))
       (print-stmt (exp)
                   (type-of-exp exp env))
       (compound-stmt (stmts)
-                     (
+                     (stmts))
+      (if-stmt (exp stmt1 stmt2)
+               (type-of-exp exp env))
+      (while-stmt (exp stmt)
+                  (type-of-exp exp env))
+      (block-stmt (id exp stmt)
+                  (type-of-exp exp env))
+      )))
 
 (define unparse
   (lambda (expv)
