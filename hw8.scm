@@ -130,16 +130,16 @@
 (define init-type-env
   (lambda ()
     (extend-env 'xor bool-type-exp
-                (extend-env 'or bool-type-exp
-                (extend-env 'and bool-type-exp 
-                (extend-env 'greater bool-type-exp
-                (extend-env 'lesser bool-type-exp
-                (extend-env 'equal bool-type-exp
-                (extend-env 'mod int-type-exp
-                (extend-env 'div int-type-exp
-                (extend-env 'mul int-type-exp
-                (extend-env 'sub int-type-exp
-                (extend-env 'add int-type-exp
+                (extend-env 'or (bool-type-exp)
+                (extend-env 'and (bool-type-exp) 
+                (extend-env 'greater (bool-type-exp)
+                (extend-env 'lesser (bool-type-exp)
+                (extend-env 'equal (bool-type-exp)
+                (extend-env 'mod (int-type-exp)
+                (extend-env 'div (int-type-exp)
+                (extend-env 'mul (int-type-exp)
+                (extend-env 'sub (int-type-exp)
+                (extend-env 'add (int-type-exp)
                 (empty-env))))))))))))))
 
 
@@ -163,7 +163,7 @@
   (lambda (pgm)
     (cases a-program pgm
       (prog-exp (pgm1)
-                (type-of-stmt pgm1 init-type-env)))))
+                (type-of-stmt pgm1 (init-type-env))))))
 
 (define type-of-stmt
   (lambda (exp env)
@@ -215,17 +215,33 @@
     (cases sub-exp exp
       (cond-exp (list-exp1 list-exp2 else-exp)
                 (for-each (lambda (x) (check-equal-type! (bool-type-exp) (type-of-exp x env) exp)) list-exp1)
-                (cond-type-check list-exp2 (type-of-exp else-exp env) env)
+                (cond-type-check list-exp2 (type-of-exp else-exp env) env exp)
                 )
+      (call-exp (op rands)
+               (call-type-check (type-of-exp op env) rands env exp))
+      (if-exp (test-exp then-exp else-exp)
+              (let ((ty1 (type-of-exp test-exp env))
+                    (ty2 (type-of-exp then-exp env))
+                    (ty3 (type-of-exp else-exp env)))
+                (check-equal-type! (bool-type-exp) ty1 test-exp)
+                (check-equal-type! ty2 ty3 exp)
+                ty2))
       (else
        '()))))
 
+(define call-type-check
+  (lambda (op rands env exp)
+    (cond
+      ((null? rands) op)
+    (else (check-equal-type! op (type-of-exp (car rands) env) exp)
+    (call-type-check op (cdr rands) env exp)))))
+
 (define cond-type-check
-  (lambda (list-exp2 else-exp env)
+  (lambda (list-exp2 else-exp env exp)
     (cond
       ((null? list-exp2) else-exp)
-      (check-equal-type! (type-of-exp (car list-exp2) env) else-exp)
-      (cond-type-check (cdr list-exp2) else-exp env)
+      (else (check-equal-type! (type-of-exp (car list-exp2) env) else-exp exp)
+      (cond-type-check (cdr list-exp2) else-exp env exp))
       )))
 
 (define unparse
