@@ -104,7 +104,7 @@
 (define check-equal-type!
   (lambda (ty1 ty2 exp)
     (if (not (equal? ty1 ty2))
-        (report-unequal-types ty1 ty2 exp) #f)))
+        (report-unequal-types ty1 ty2 exp) #t)))
 
 (define report-unequal-types
   (lambda (ty1 ty2 exp)
@@ -151,14 +151,37 @@
 
 (define type-of-stmt
   (lambda (exp env)
-    (cases stmt
-      (assign-stmt (id exp)
-                   (extend-env id (type-of-exp exp env) env))
+    (cases stmt exp
+      (assign-stmt (id body)
+                   (extend-env id (type-of-exp body env) env))
       (print-stmt (exp)
                   (type-of-exp exp env))
       (compound-stmt (stmts)
-                     (
+                     (for-each (lambda (x) (type-of-stmt x env)) stmts)
+                     (void-type-exp))
+      (if-stmt (test stmt1 stmt2)
+               (if (check-equal-type! bool-type-exp (type-of-exp test env))
+               (check-equal-type! (type-of-stmt stmt1 env) (type-of-stmt stmt2 env))
+               #f))
+      (while-stmt (test-exp stmt1)
+                  (if (check-equal-type! bool-type-exp (type-of-exp test-exp env))
+                      (type-of-stmt stmt1 env)
+                      #f))
+      (block-stmt (vars init-exps body-stmt)
+                  (type-of-stmt body-stmt (assign-types-for-vars vars init-exps env env)))
+      (else
+       (eopl:error 'stmt "Not a proper statement to typecheck ~s" exp)))))
 
+(define assign-types-for-vars
+  (lambda (vars exps env old-env)
+    (cond
+      ((null? vars) env)
+      (assign-types-for-vars (cdr vars) (cdr exps) (extend-env (car vars) (type-of-exp (car exp) old-env) env) old-env))))
+
+(define type-of-exp
+  (lambda (exp env)
+    (eopl:error 'exp "Bad expression to typecheck ~s" exp)))
+  
 (define unparse
   (lambda (expv)
     (cases expval expv
