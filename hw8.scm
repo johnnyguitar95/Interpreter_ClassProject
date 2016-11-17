@@ -147,7 +147,16 @@
   (lambda (pgm)
     (unparse-type (type-of-program (scan&parse pgm)))))
 
-(define unparse-type 
+(define unparse-type
+  (lambda (pgm)
+    (cases type-exp pgm
+      (int-type-exp ()
+       'int)
+      (bool-type-exp ()
+       'bool)
+      (void-type-exp ()
+       'void)
+      (else (eopl:error 'pgm "bad typechecking for the unparser" pgm)))))
 
 
 (define type-of-program
@@ -168,15 +177,17 @@
                      (for-each (lambda (x) (type-of-stmt x env)) stmts)
                      (void-type-exp))
       (if-stmt (test stmt1 stmt2)
-               (if (check-equal-type! bool-type-exp (type-of-exp test env) test)
-               (check-equal-type! (type-of-stmt stmt1 env) (type-of-stmt stmt2 env) exp)
-               #f))
+               (check-equal-type! (bool-type-exp) (type-of-exp test env) test)
+               (type-of-stmt stmt1 env)
+               (type-of-stmt stmt2 env)
+               (void-type-exp))
       (while-stmt (test-exp stmt1)
-                  (if (check-equal-type! bool-type-exp (type-of-exp test-exp env))
-                      (type-of-stmt stmt1 env)
-                      #f))
+                  (check-equal-type! bool-type-exp (type-of-exp test-exp env) exp)
+                  (type-of-stmt stmt1 env)
+                  (void-type-exp))
       (block-stmt (vars init-exps body-stmt)
-                  (type-of-stmt body-stmt (assign-types-for-vars vars init-exps env env)))
+                  (type-of-stmt body-stmt (assign-types-for-vars vars init-exps env env))
+                  (void-type-exp))
       (else
        (eopl:error 'stmt "Not a proper statement to typecheck ~s" exp)))))
 
@@ -190,23 +201,33 @@
   (lambda (exp1 env)
     (cases exp exp1
       (const-exp (num)
-                 int-type-exp)
+                 (int-type-exp))
       (var-exp (var)
                (apply-env env var))
       (shell-exp (body)
                  (type-of-body body env))
       (pound-exp (subbool)
-       bool-type-exp)
+       (bool-type-exp))
        (else (eopl:error 'exp1 "Badexpression to typecheck ~s" exp1)))))
 
 (define type-of-body
   (lambda (exp env)
     (cases sub-exp exp
       (cond-exp (list-exp1 list-exp2 else-exp)
-                '())
+                (for-each (lambda (x) (check-equal-type! (bool-type-exp) (type-of-exp x env) exp)) list-exp1)
+                (cond-type-check list-exp2 (type-of-exp else-exp env) env)
+                )
       (else
        '()))))
-  
+
+(define cond-type-check
+  (lambda (list-exp2 else-exp env)
+    (cond
+      ((null? list-exp2) else-exp)
+      (check-equal-type! (type-of-exp (car list-exp2) env) else-exp)
+      (cond-type-check (cdr list-exp2) else-exp env)
+      )))
+
 (define unparse
   (lambda (expv)
     (cases expval expv

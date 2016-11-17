@@ -306,6 +306,9 @@
                          (check-program-type-equal? "print (list (lambda (x:int) (add x 1)) (lambda (y:int) (add y 2)) (lambda (z:int) (add z 3)))" "(listof (int -> int))"))
               (test-case "Can run assignment8-supplied test case 5"
                          (check-program-type-equal? "print (letrec ((int fib (lambda (x:int) (if (lesser x 2) x (add (fib (sub x 1)) (fib (sub x 2))))))) (fib 1))" "int"))
+
+              (test-case "Checking simple conds"
+                         (check-equal? (typecheck "print (cond (#t 4)(#t 2) (else 5))") 'int))
               
               ))
 
