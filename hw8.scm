@@ -145,9 +145,16 @@
 
 (define typecheck
   (lambda (pgm)
+    (unparse-type (type-of-program (scan&parse pgm)))))
+
+(define unparse-type 
+
+
+(define type-of-program
+  (lambda (pgm)
     (cases a-program pgm
       (prog-exp (pgm1)
-       (type-of-stmt pgm1 init-type-env)))))
+                (type-of-stmt pgm1 init-type-env)))))
 
 (define type-of-stmt
   (lambda (exp env)
@@ -161,8 +168,8 @@
                      (for-each (lambda (x) (type-of-stmt x env)) stmts)
                      (void-type-exp))
       (if-stmt (test stmt1 stmt2)
-               (if (check-equal-type! bool-type-exp (type-of-exp test env))
-               (check-equal-type! (type-of-stmt stmt1 env) (type-of-stmt stmt2 env))
+               (if (check-equal-type! bool-type-exp (type-of-exp test env) test)
+               (check-equal-type! (type-of-stmt stmt1 env) (type-of-stmt stmt2 env) exp)
                #f))
       (while-stmt (test-exp stmt1)
                   (if (check-equal-type! bool-type-exp (type-of-exp test-exp env))
@@ -610,5 +617,5 @@
       )))
 
 
-(provide scan&parse run)
+(provide scan&parse run typecheck)
 ;TA-BOT:MAILTO john.p.halloran@marquette.edu jakob.horner@marquette.edu
