@@ -145,23 +145,31 @@
 
 (define typecheck
   (lambda (pgm)
+    (unparse-type (type-of-program (scan&parse pgm)))))
+
+(define unparse-type 
+
+
+(define type-of-program
+  (lambda (pgm)
     (cases a-program pgm
       (prog-exp (pgm1)
-       (type-of-stmt pgm1 init-type-env)))))
+                (type-of-stmt pgm1 init-type-env)))))
 
 (define type-of-stmt
   (lambda (exp env)
     (cases stmt exp
       (assign-stmt (id body)
-                   (extend-env id (type-of-exp body env) env))
+                   (if (check-equal-type! (apply-env env id) (type-of-exp body))
+                   (extend-env id (type-of-exp body env) env) #f))
       (print-stmt (exp)
                   (type-of-exp exp env))
       (compound-stmt (stmts)
                      (for-each (lambda (x) (type-of-stmt x env)) stmts)
                      (void-type-exp))
       (if-stmt (test stmt1 stmt2)
-               (if (check-equal-type! bool-type-exp (type-of-exp test env))
-               (check-equal-type! (type-of-stmt stmt1 env) (type-of-stmt stmt2 env))
+               (if (check-equal-type! bool-type-exp (type-of-exp test env) test)
+               (check-equal-type! (type-of-stmt stmt1 env) (type-of-stmt stmt2 env) exp)
                #f))
       (while-stmt (test-exp stmt1)
                   (if (check-equal-type! bool-type-exp (type-of-exp test-exp env))
@@ -179,8 +187,25 @@
       (assign-types-for-vars (cdr vars) (cdr exps) (extend-env (car vars) (type-of-exp (car exps) old-env) env) old-env))))
 
 (define type-of-exp
+  (lambda (exp1 env)
+    (cases exp exp1
+      (const-exp (num)
+                 int-type-exp)
+      (var-exp (var)
+               (apply-env env var))
+      (shell-exp (body)
+                 (type-of-body body env))
+      (pound-exp (subbool)
+       bool-type-exp)
+       (else (eopl:error 'exp1 "Badexpression to typecheck ~s" exp1)))))
+
+(define type-of-body
   (lambda (exp env)
-    (eopl:error 'exp "Bad expression to typecheck ~s" exp)))
+    (cases sub-exp exp
+      (cond-exp (list-exp1 list-exp2 else-exp)
+                '())
+      (else
+       '()))))
   
 (define unparse
   (lambda (expv)
@@ -453,7 +478,7 @@
           ((expval->bool (value-of-exp bool env)) (value-of-exp exp1 env))
           (else (value-of-exp exp2 env))))
       ;case for lambda expressions
-      (proc-exp (types var body)
+      (proc-exp (var types body)
                 (proc-val (procedure var types body env)))
       ;case for let expressions  
       (let-exp (lstexp exp1)
