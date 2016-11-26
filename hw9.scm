@@ -78,9 +78,9 @@
 (define expression-grammar
   '((a-program ((arbno class-decl) stmt) prog-exp)
     (class-decl ("class" identifier "extends" identifier "{"
-                         (arbno "field" identifier ";") (arbno method-decl) "}") default-class)
+                         (arbno "field" identifier ";") (arbno method-decl) "}") a-class-decl)
     (method-decl ("method" identifier "(" (separated-list identifier ",") ")"
-                           "{" (arbno stmt ";") "return" exp ";" "}") default-method)
+                           "{" (arbno stmt ";") "return" exp ";" "}") a-method-decl)
     (stmt (identifier "=" exp) assign-stmt)
     (stmt ("print" exp) print-stmt)
     (stmt ("{" (separated-list stmt ";") "}") compound-stmt)
@@ -91,6 +91,10 @@
     (exp (identifier) var-exp)
     (exp ("(" sub-exp ")") shell-exp)
     (exp (sub-boolval)  pound-exp)
+    (exp ("new" identifier "(" (separated-list exp ",") ")") new-object-exp)
+    (exp ("send" exp "." identifier "(" (separated-list exp ",") ")") method-call-exp)
+    (exp ("super" "." identifier "(" (separated-list exp ",") ")") super-call-exp)
+    (exp ("this") self-exp)
     (sub-exp ("cond" "(" (arbno exp exp ")""(") "else" exp ")") cond-exp)
     (sub-exp (exp (arbno exp)) call-exp)
     (sub-exp ("if" exp exp exp) if-exp)
