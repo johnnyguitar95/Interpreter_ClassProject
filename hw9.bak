@@ -76,11 +76,7 @@
   (number   (digit (arbno digit))  number)))
 ;This is the grammar specified in homework specs
 (define expression-grammar
-  '((a-program ((arbno class-decl) stmt) prog-exp)
-    (class-decl ("class" identifier "extends" identifier "{"
-                         (arbno "field" identifier ";") (arbno method-decl) "}") default-class)
-    (method-decl ("method" identifier "(" (separated-list identifier ",") ")"
-                           "{" (arbno stmt ";") "return" exp ";" "}") default-method)
+  '((a-program (stmt) prog-exp)
     (stmt (identifier "=" exp) assign-stmt)
     (stmt ("print" exp) print-stmt)
     (stmt ("{" (separated-list stmt ";") "}") compound-stmt)
@@ -210,7 +206,7 @@
   (lambda (pgm)
     (initialize-store!)
     (cases a-program pgm
-      (prog-exp (classes exp)
+      (prog-exp (exp)
          (value-of-stmt exp
                    (extend-env 'list (ref-val (newref (proc-val (prim-procedure 'list (lambda (lst env) (create-list lst env)) 1))))
                    (extend-env 'null? (ref-val (newref (proc-val (prim-procedure 'null (lambda (x) ;(if (not (list-type? x)) (bool-val #f)
