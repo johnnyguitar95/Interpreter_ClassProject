@@ -1,8 +1,8 @@
 #lang eopl
 ;John Halloran and Jakob Horner
-;This is necessary code ported from homework 2
 (require "store.scm")
 (require "display-intercept.scm")
+
 
 (define-datatype environment environment?
   (empty-env)
@@ -215,6 +215,7 @@
     (initialize-store!)
     (cases a-program pgm
       (prog-exp (classes exp)
+         (initialize-class-env! classes)       
          (value-of-stmt exp
                    (extend-env 'list (ref-val (newref (proc-val (prim-procedure 'list (lambda (lst env) (create-list lst env)) 1))))
                    (extend-env 'null? (ref-val (newref (proc-val (prim-procedure 'null (lambda (x) ;(if (not (list-type? x)) (bool-val #f)
@@ -248,6 +249,108 @@
       (else
        (eopl:error 'pgm "Improper program ~s" pgm))
       )))
+;This is stuff from 9.4.3
+(define initialize-class-env!
+  (lambda (c-decls)
+    (set! the-class-env
+          (list
+           (list 'object (a-class #f '() '()))))
+    (for-each initialize-class-decl! c-decls)
+    ))
+
+(define initialize-class-decl!
+  (lambda (c-decl)
+    (cases class-decl c-decl
+      (a-class-decl (c-name s-name f-names m-decls)
+                    (let ((f-names
+                           (append-field-names
+                            (class->field-names (lookup-class s-name))
+                            f-names)))
+                      (add-to-class-env!
+                       c-name
+                       (a-class s-name f-names
+                                (merge-method-envs
+                                 (class->method-env (lookup-class s-name))
+                                 (method-decls->method-env
+                                  m-decls s-name f-names)))))))))
+
+(define class->field-names
+  (lambda (c-name)
+    (cases class c-name
+      (a-class (n-super f-names env)
+               f-names))))
+
+(define append-field-names
+  (lambda (super-fields new-fields)
+    (cond
+      ((null? super-fields) new-fields)
+      (else
+       (cons
+        (if (memq (car super-fields) new-fields)
+            (fresh-identifier (car super-fields)) ; no idea what this is
+            (car super-fields))
+        (append-field-names
+         (cdr super-fields) new-fields))))))
+
+(define the-class-env
+  '())
+
+(define add-to-class-env!
+  (lambda (class-name class)
+    (set! the-class-env
+          (cons
+           (list class-name class)
+           the-class-env))))
+
+(define lookup-class
+  (lambda (name)
+    (let ((maybe-pair (assq name the-class-env)))
+      (if maybe-pair (cadr maybe-pair)
+          (eopl:error 'name "Name not known `s" name)))))
+
+(define-datatype class class?
+  (a-class
+   (super-name (maybe symbol?))
+   (field-names (list-of symbol?))
+   (method-env environment?)))
+; end stuff from 9.4.3
+
+;stuff from 9.4.4
+(define find-method
+  (lambda (c-name name)
+    (let ((m-env (class->method-env (lookup-class c-name))))
+      (let ((maybe-pair (assq name m-env)))
+        (if (pair? maybe-pair) (cadr maybe-pair)
+            (eopl:error 'maybe-pair "Unknown method ~s" maybe-pair))))))
+
+(define method-decls->method-env
+  (lambda (m-decls super-name field-names)
+    (map
+     (lambda (m-decl)
+       (cases method-decl m-decl
+         (a-method-decl (method-name vars body)
+                        (list method-name
+                              (a-method vars body super-name field-names)))))
+     m-decls)))
+
+(define class->method-env
+  (lambda (c-name)
+    (cases class c-name
+      (a-class (n-super f-names env)
+               env))))
+
+(define merge-method-envs
+  (lambda (super-m-env new-m-env)
+    (append new-m-env super-m-env)))
+
+;9.4.2
+(define-datatype method method?
+  (a-method
+   (cars (list-of identifier?))
+   (body expression?)
+   (super-name identifier?)
+   (field-names (list-of identifier?))))
+; end 9.4.2
 
 ;expval datatype
 (define-datatype expval expval?
