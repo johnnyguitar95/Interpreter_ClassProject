@@ -72,7 +72,7 @@
 (define scanner-spec-lc
 '((white-sp (whitespace)  skip)
   (comment  ("%" (arbno (not #\newline)))  skip)
-  (identifier (letter (arbno (or letter digit "_" "?"))) symbol)
+  (identifier (letter (arbno (or letter digit "?"))) symbol)
   (number   (digit (arbno digit))  number)))
 ;This is the grammar specified in homework specs
 (define expression-grammar
@@ -249,7 +249,6 @@
       (else
        (eopl:error 'pgm "Improper program ~s" pgm))
       )))
-
 ;This is stuff from 9.4.3
 (define initialize-class-env!
   (lambda (c-decls)
@@ -270,7 +269,7 @@
                       (add-to-class-env!
                        c-name
                        (a-class s-name f-names
-                                 (merge-method-envs
+                                (merge-method-envs
                                  (class->method-env (lookup-class s-name))
                                  (method-decls->method-env
                                   m-decls s-name f-names)))))))))
@@ -293,17 +292,6 @@
         (append-field-names
          (cdr super-fields) new-fields))))))
 
-(define fresh-identifier
-  (let ((sn 0))
-    (lambda (identifier)
-      (set! sn (+ sn 1))
-      (string->symbol
-       (string-append
-        (symbol->string identifier)
-        "%"
-        (number->string sn))))))
-    
-
 (define the-class-env
   '())
 
@@ -324,7 +312,7 @@
   (a-class
    (super-name (maybe symbol?))
    (field-names (list-of symbol?))
-   (method-env list?)))
+   (method-env environment?)))
 ; end stuff from 9.4.3
 
 ;stuff from 9.4.4
@@ -340,7 +328,7 @@
     (map
      (lambda (m-decl)
        (cases method-decl m-decl
-         (a-method-decl (method-name vars body exp)
+         (a-method-decl (method-name vars body)
                         (list method-name
                               (a-method vars body super-name field-names)))))
      m-decls)))
@@ -358,49 +346,11 @@
 ;9.4.2
 (define-datatype method method?
   (a-method
-   (vars (list-of symbol?))
-   (body (list-of stmt?))
-   (super-name symbol?)
-   (field-names (list-of symbol?))))
-
-(define apply-method
-  (lambda (m self args)
-    (cases method m
-      (a-method (vars body super-name field-names)
-                (value-of-stmt (car body)
-                          (extend-env vars (map newref args)
-                                      (extend-env
-                                       self super-name
-                                       (extend-env field-names (object->fields self)
-                                                   (empty-env)))))))))
-
-(define object->fields
-  (lambda (obj)
-    (cases object obj
-      (an-object (name fields)
-                 fields))))
+   (cars (list-of identifier?))
+   (body expression?)
+   (super-name identifier?)
+   (field-names (list-of identifier?))))
 ; end 9.4.2
-
-; begin 9.4.1
-(define-datatype object object?
-  (an-object
-   (class-name symbol?)
-   (fields (list-of reference?))))
-
-(define object->class-name
-  (lambda (obj)
-    (cases object obj
-      (an-object (class-name fields)
-                 class-name))))
-
-(define new-object
-  (lambda (class-name)
-    (an-object
-     class-name
-     (map
-      (lambda (field-name)
-        (newref (list 'uninitialized-field field-name)))
-      (class->field-names (lookup-class class-name))))))
 
 ;expval datatype
 (define-datatype expval expval?
@@ -535,46 +485,9 @@
     ;case for boolean expressions
     (pound-exp (subbool)
          (evaluate-pound subbool))
-    ;case for this expressions
-    (self-exp ()
-              (apply-env env '%self))
-    ;case for method-call-exp
-    (method-call-exp (obj-exp method-name rands)
-                     (let ((args (values-of-exps rands env))
-                           (obj (value-of-exp obj-exp env)))
-                       (apply-method
-                        (find-method
-                         (object->class-name obj)
-                         method-name)
-                        obj
-                        args)))
-    ;case for super-call-exp
-    (super-call-exp (method-name rands)
-                    (let ((args (values-of-exps rands env))
-                          (obj (apply-env env '%self)))
-                      (apply-method
-                       (find-method (apply-env env '%super) method-name)
-                       obj
-                       args)))
-    ;case for new-object-exp (class-name rands)
-    (new-object-exp (class-name rands)
-                    (let ((args (values-of-exps rands env))
-                          (obj (new-object class-name)))
-                      (apply-method
-                       (find-method class-name 'initialize)
-                       obj
-                       args)
-                      obj))
     (else
        (eopl:error 'ex "Improper expression ~s" ex))
    )))
-
-(define values-of-exps
-  (lambda (exps env)
-    (cond
-      ((null? exps) '())
-      (cons (value-of-exp (car exps) env) (values-of-exps (cdr exps) env)))))
-
 ;value of a general expression
 (define value-of-body
   (lambda (exp env)
