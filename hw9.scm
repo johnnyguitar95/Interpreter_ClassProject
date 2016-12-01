@@ -17,6 +17,11 @@
    (bodies (list-of exp?))
    (env environment?)
   )
+  (extend-env-with-self-and-super
+   (self object?)
+   (super-name symbol?)
+   (env environment?)
+   )
 )
 (define apply-env
   (lambda (env search-var)
@@ -31,6 +36,12 @@
           )
           (extend-env-rec (p-names b-vars-s p-bodies saved-env)
                       (extend-env-rec-helper p-names b-vars-s p-bodies search-var env saved-env))
+          (extend-env-with-self-and-super (self super-name env)
+                                          (if (eq? '%self search-var)
+                                              self
+                                              (if (eq? '%super search-var)
+                                                  super-name
+                                                  (apply-env env search-var))))
         )
         (report-invalid-env env)
     )
@@ -44,24 +55,7 @@
        ((eq? (car p-names) search-var) (ref-val (newref (proc-val (procedure (car b-vars-s) (car p-bodies) top-env)))))
        (else (extend-env-rec-helper (cdr p-names) (cdr b-vars-s) (cdr p-bodies) search-var top-env next-env)))))
 
-(define has-binding?
-  (lambda (env s)
-    (if (environment? env)
-        (cases environment env
-          (empty-env () #f)
-          (extend-env (var val saved-env)
-                      (if (eq? var s)
-                          #t
-                          (has-binding? saved-env s)
-                      )
-          )
-          (extend-env-rec (p-name b-var p-body saved-env)
-                      (if (eq? p-name s) #t (has-binding? saved-env s)))
-        )
-        (report-invalid-env env)
-    )
-  )
-)
+
 (define report-no-binding-found
   (lambda (search-var)
     (eopl:error 'apply-env "No binding for ~s" search-var)))
@@ -216,8 +210,14 @@
     (cases a-program pgm
       (prog-exp (classes exp)
          (initialize-class-env! classes)       
-         (value-of-stmt exp
-                   (extend-env 'list (ref-val (newref (proc-val (prim-procedure 'list (lambda (lst env) (create-list lst env)) 1))))
+         (value-of-stmt exp (init-env)))
+      (else
+       (eopl:error 'pgm "Improper program ~s" pgm))
+      )))
+
+(define init-env
+  (lambda ()
+    (extend-env 'list (ref-val (newref (proc-val (prim-procedure 'list (lambda (lst env) (create-list lst env)) 1))))
                    (extend-env 'null? (ref-val (newref (proc-val (prim-procedure 'null (lambda (x) ;(if (not (list-type? x)) (bool-val #f)
                                                                         (cases expval x
                                                                         (list-val (lst)
@@ -246,9 +246,6 @@
                    (extend-env 'add (ref-val (newref (proc-val (prim-procedure 'add  (lambda (x y) (num-val (+ (expval->num x) (expval->num y)))) 2))))
                                            (empty-env)
                                            )))))))))))))))))))
-      (else
-       (eopl:error 'pgm "Improper program ~s" pgm))
-      )))
 
 ;This is stuff from 9.4.3
 (define initialize-class-env!
@@ -340,9 +337,9 @@
     (map
      (lambda (m-decl)
        (cases method-decl m-decl
-         (a-method-decl (method-name vars body exp)
+         (a-method-decl (method-name vars stmts exp)
                         (list method-name
-                              (a-method vars body super-name field-names)))))
+                              (a-method vars stmts exp super-name field-names)))))
      m-decls)))
 
 (define class->method-env
@@ -360,19 +357,50 @@
   (a-method
    (vars (list-of symbol?))
    (body (list-of stmt?))
+   (return-exp exp?)
    (super-name symbol?)
    (field-names (list-of symbol?))))
 
 (define apply-method
   (lambda (m self args)
     (cases method m
-      (a-method (vars body super-name field-names)
-                (value-of-stmt (car body)
-                          (extend-env vars (map newref args)
-                                      (extend-env
-                                       self super-name
-                                       (extend-env field-names (object->fields self)
-                                                   (empty-env)))))))))
+      (a-method (vars stmts return-exp super-name field-names)
+                (begin (value-of-multiple-stmts stmts return-exp
+                         (extend-env* vars (map newref args)
+                             (extend-env-with-self-and-super
+                                   self super-name
+                                      (extend-env-with-fields field-names
+                                          (object->fields self))))))))))
+
+
+(define extend-env-with-fields
+  (lambda (field-names fields)
+    (cond
+      ((null? field-names) (init-env))
+      (else
+      (extend-env (car field-names) (ref-val (car fields)) (extend-env-with-fields (cdr field-names) (cdr fields)))))))
+
+(define value-of-multiple-stmts
+  (lambda (stmts return-exp env)
+    (cond
+       ((null? stmts) (value-of-exp return-exp env))
+       (else
+        (begin
+         (value-of-stmt (car stmts) env)
+         (value-of-multiple-stmts (cdr stmts) return-exp env))))))
+
+      
+(define extend-env*
+  (lambda (vars args env)
+    (cond
+      ((and (null? args) (null? vars)) env)
+      ((or (null? args) (null? vars))
+          (eopl:error 'extend-env* "Mismatched arguments"))
+      (else
+       (extend-env*
+       (cdr vars)
+       (cdr args)
+       (extend-env (car vars) (ref-val (car args)) env))))))
 
 (define object->fields
   (lambda (obj)
@@ -558,7 +586,7 @@
                        args)))
     ;case for new-object-exp (class-name rands)
     (new-object-exp (class-name rands)
-                    (let ((args (values-of-exps rands env))
+                    (let ((args (map (lambda (exp) (value-of-exp exp env)) rands))
                           (obj (new-object class-name)))
                       (apply-method
                        (find-method class-name 'initialize)
@@ -573,7 +601,8 @@
   (lambda (exps env)
     (cond
       ((null? exps) '())
-      (cons (value-of-exp (car exps) env) (values-of-exps (cdr exps) env)))))
+      (else
+      (cons (value-of-exp (car exps) env) (values-of-exps (cdr exps) env))))))
 
 ;value of a general expression
 (define value-of-body
