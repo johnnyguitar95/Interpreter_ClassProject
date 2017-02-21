@@ -1,3 +1,0 @@
-(cons (cons (car lst) (apply-env (car lst) env)) (symbol-count (cdr lst) (extend-env (car lst) 1 env)))
-
-(cons (cons (car lst) (apply-env (car lst) env)) (symbol-count (cdr lst) (increment-var-env env (car lst))))

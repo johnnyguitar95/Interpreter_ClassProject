@@ -1,6 +1,0 @@
-#lang eopl
-
-(define initilize-class-env!
-  (lambda (classes)
-    '()
-    ))

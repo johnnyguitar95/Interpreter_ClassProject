@@ -1,1 +1,0 @@
-("6.2.1" ("271b1fc0504c79cf61c5e31ceaa66f7ed46e22c9" . "31777c45d86ea8733b84e2fc377f0c049b4bfe6f") (collects #"eopl" #"main.rkt") #"/users/majors/jhallora/COSC3410/Tree.scm" (collects #"eopl" #"lang" #"reader.rkt"))

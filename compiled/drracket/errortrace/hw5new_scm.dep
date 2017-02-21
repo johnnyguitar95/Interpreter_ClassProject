@@ -1,1 +1,0 @@
-("6.6" ("a6206d7a5e45d6134fc08bb280b07ea03afc55d1" . "144ac4367a33538d1a42b2877ddca9af9a8135f7") (collects #"eopl" #"lang" #"reader.rkt") (collects #"eopl" #"main.rkt") (collects #"errortrace" #"errortrace-key.rkt"))
